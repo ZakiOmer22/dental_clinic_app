@@ -1,0 +1,243 @@
+{
+  "timestamp": "2026-04-15T18:35:48.163Z",
+  "baseUrl": "http://localhost:3000",
+  "duration": "0.13s",
+  "results": {
+    "passed": 0,
+    "failed": 46,
+    "skipped": 0,
+    "successRate": "0.0%"
+  },
+  "details": [
+    {
+      "name": "GET /health - returns ok",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "POST /auth/login - success",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /auth/me - returns user profile",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "POST /auth/login - invalid credentials",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "POST /auth/refresh - refresh token",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /patients - list patients",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "POST /patients - create patient",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /patients/:id - get single patient",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "PATCH /patients/:id - update patient",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /patients/search - search patients",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /appointments - list appointments",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "POST /appointments - create appointment",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /appointments/:id - get appointment",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "PATCH /appointments/:id - update appointment",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /appointments/today - today's appointments",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /treatments - list treatments",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /procedures - list procedures",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "POST /treatments - create treatment",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /treatments/:id - get treatment",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /prescriptions - list prescriptions",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "POST /prescriptions - create prescription",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /prescriptions/:id - get prescription",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /billing/invoices - list invoices",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "POST /billing/invoices - create invoice",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /billing/invoices/:id - get invoice",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "POST /billing/payments - add payment",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /inventory/items - list inventory",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "POST /inventory/items - create inventory item",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /inventory/items/alerts/low-stock - low stock alerts",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "POST /inventory/stock/in - stock in",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /lab-orders - list lab orders",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "POST /lab-orders - create lab order",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /lab-orders/:id - get lab order",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /reports/dashboard - dashboard stats",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /reports/revenue - revenue report",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /reports/appointments - appointment report",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /audit-logs - list audit logs",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /audit-logs/stats - audit statistics",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /staff - list staff",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /users - list users",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /settings - get clinic settings",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /rooms - list rooms",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /notifications - list notifications",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /notifications/unread-count - unread count",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /patients - returns 401 without token",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /appointments - returns 401 without token",
+      "status": "FAILED",
+      "error": ""
+    }
+  ]
+}
