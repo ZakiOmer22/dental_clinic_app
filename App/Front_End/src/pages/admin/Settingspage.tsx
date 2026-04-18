@@ -11,13 +11,11 @@ import {
   Edit, X, Save, Moon, Sun, Monitor, Languages
 } from "lucide-react";
 import {
-  apiGetClinic,
-  apiUpdateClinic,
   apiGetRooms,
-  apiCreateRoom,
   apiUpdateRoom,
   apiDeleteRoom
-} from "@/api/settings";
+} from "@/api/rooms";
+import { apiGetClinic, apiUpdateClinic } from "@/api/settings";
 import { useAuthStore } from "@/app/store";
 import toast from "react-hot-toast";
 

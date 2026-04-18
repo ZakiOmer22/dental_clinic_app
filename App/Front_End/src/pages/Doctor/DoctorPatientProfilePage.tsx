@@ -58,7 +58,7 @@ const C = {
     purpleBg: "#f5f3ff",
     purpleText: "#5b21b6",
 };
-import { toast } from "react-hot-toast"; 
+import { toast } from "react-hot-toast";
 
 type DoctorTab = "clinical" | "treatment" | "prescriptions" | "lab" | "history" | "files";
 
@@ -2279,79 +2279,107 @@ export default function DoctorPatientProfilePage() {
                                             margin: "0 auto"
                                         }} />
                                     </div>
-                                ) : files?.length === 0 ? (
-                                    <div style={{ padding: "40px 0", textAlign: "center" }}>
-                                        <FolderOpen size={28} color={C.border} style={{ margin: "0 auto 8px", display: "block" }} />
-                                        <p style={{ fontSize: 13, color: C.faint }}>No files uploaded yet</p>
-                                    </div>
                                 ) : (
-                                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 12 }}>
-                                        {files?.map((file: any) => (
-                                            <a
-                                                key={file.id}
-                                                href={file.file_url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                style={{
-                                                    display: "block",
-                                                    textDecoration: "none",
-                                                    background: C.bg,
-                                                    border: `1px solid ${C.border}`,
-                                                    borderRadius: 12,
-                                                    overflow: "hidden",
-                                                    transition: "all .15s"
-                                                }}
-                                                onMouseEnter={e => {
-                                                    e.currentTarget.style.borderColor = C.teal;
-                                                    e.currentTarget.style.boxShadow = `0 0 0 3px ${C.tealBg}`;
-                                                }}
-                                                onMouseLeave={e => {
-                                                    e.currentTarget.style.borderColor = C.border;
-                                                    e.currentTarget.style.boxShadow = "none";
-                                                }}
-                                            >
-                                                <div style={{
-                                                    height: 120,
-                                                    background: C.bgMuted,
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    justifyContent: "center",
-                                                    borderBottom: `1px solid ${C.border}`
-                                                }}>
-                                                    <FileText size={40} color={C.muted} />
-                                                </div>
-                                                <div style={{ padding: "12px" }}>
-                                                    <span style={{
-                                                        fontSize: 11,
+                                    <>
+                                        {(!files || (Array.isArray(files) && files.length === 0) || (!Array.isArray(files) && files?.data?.length === 0)) ? (
+                                            <div style={{ padding: "40px 0", textAlign: "center" }}>
+                                                <FolderOpen size={28} color={C.border} style={{ margin: "0 auto 8px", display: "block" }} />
+                                                <p style={{ fontSize: 13, color: C.faint }}>No files uploaded yet</p>
+                                                <button
+                                                    onClick={() => setActiveModal("xray")}
+                                                    style={{
+                                                        marginTop: 16,
+                                                        padding: "8px 16px",
+                                                        background: C.teal,
+                                                        border: "none",
+                                                        borderRadius: 8,
+                                                        color: "white",
+                                                        fontSize: 12,
                                                         fontWeight: 600,
-                                                        padding: "2px 8px",
-                                                        borderRadius: 100,
-                                                        background: C.tealBg,
-                                                        color: C.tealText,
-                                                        border: `1px solid ${C.tealBorder}`,
-                                                        display: "inline-block",
-                                                        marginBottom: 6,
-                                                        textTransform: "capitalize"
-                                                    }}>
-                                                        {file.category || "file"}
-                                                    </span>
-                                                    <p style={{
-                                                        fontSize: 13,
-                                                        fontWeight: 500,
-                                                        color: C.text,
-                                                        overflow: "hidden",
-                                                        textOverflow: "ellipsis",
-                                                        whiteSpace: "nowrap"
-                                                    }}>
-                                                        {file.file_name}
-                                                    </p>
-                                                    <p style={{ fontSize: 11, color: C.faint, marginTop: 4 }}>
-                                                        {file.uploaded_at ? formatDate(file.uploaded_at) : "—"}
-                                                    </p>
-                                                </div>
-                                            </a>
-                                        ))}
-                                    </div>
+                                                        cursor: "pointer"
+                                                    }}
+                                                >
+                                                    <Camera size={14} style={{ marginRight: 6 }} /> Upload First File
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 12 }}>
+                                                {(Array.isArray(files) ? files : files?.data || []).map((file: any) => (
+                                                    <a
+                                                        key={file.id}
+                                                        href={file.file_url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        style={{
+                                                            display: "block",
+                                                            textDecoration: "none",
+                                                            background: C.bg,
+                                                            border: `1px solid ${C.border}`,
+                                                            borderRadius: 12,
+                                                            overflow: "hidden",
+                                                            transition: "all .15s"
+                                                        }}
+                                                        onMouseEnter={e => {
+                                                            e.currentTarget.style.borderColor = C.teal;
+                                                            e.currentTarget.style.boxShadow = `0 0 0 3px ${C.tealBg}`;
+                                                        }}
+                                                        onMouseLeave={e => {
+                                                            e.currentTarget.style.borderColor = C.border;
+                                                            e.currentTarget.style.boxShadow = "none";
+                                                        }}
+                                                    >
+                                                        <div style={{
+                                                            height: 120,
+                                                            background: C.bgMuted,
+                                                            display: "flex",
+                                                            alignItems: "center",
+                                                            justifyContent: "center",
+                                                            borderBottom: `1px solid ${C.border}`
+                                                        }}>
+                                                            {file.file_type?.startsWith("image/") ? (
+                                                                <img
+                                                                    src={file.file_url}
+                                                                    alt={file.file_name}
+                                                                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                                                />
+                                                            ) : (
+                                                                <FileText size={40} color={C.muted} />
+                                                            )}
+                                                        </div>
+                                                        <div style={{ padding: "12px" }}>
+                                                            <span style={{
+                                                                fontSize: 11,
+                                                                fontWeight: 600,
+                                                                padding: "2px 8px",
+                                                                borderRadius: 100,
+                                                                background: C.tealBg,
+                                                                color: C.tealText,
+                                                                border: `1px solid ${C.tealBorder}`,
+                                                                display: "inline-block",
+                                                                marginBottom: 6,
+                                                                textTransform: "capitalize"
+                                                            }}>
+                                                                {file.category || "file"}
+                                                            </span>
+                                                            <p style={{
+                                                                fontSize: 13,
+                                                                fontWeight: 500,
+                                                                color: C.text,
+                                                                overflow: "hidden",
+                                                                textOverflow: "ellipsis",
+                                                                whiteSpace: "nowrap"
+                                                            }}>
+                                                                {file.file_name}
+                                                            </p>
+                                                            <p style={{ fontSize: 11, color: C.faint, marginTop: 4 }}>
+                                                                {file.uploaded_at ? formatDate(file.uploaded_at) : "—"}
+                                                            </p>
+                                                        </div>
+                                                    </a>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </>
                                 )}
                             </div>
                         )}

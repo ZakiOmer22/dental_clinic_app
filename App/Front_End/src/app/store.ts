@@ -1,8 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-// ─── Auth Store ────────────────────────────────────────────────────────────────
 interface User {
+  username: string;
   id: number;
   clinicId: number;
   fullName: string;
@@ -14,7 +14,7 @@ interface User {
 interface AuthState {
   token: string | null;
   user: User | null;
-  _hasHydrated: boolean;           // ← NEW: tracks when localStorage is loaded
+  _hasHydrated: boolean;
   setAuth: (token: string, user: User) => void;
   clear: () => void;
   isLoggedIn: () => boolean;
@@ -35,8 +35,8 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: "dentiflow-auth",
-
-      // Fires when Zustand finishes reading from localStorage
+      // ✅ _hasHydrated must NOT be persisted — it's runtime-only
+      partialize: (state) => ({ token: state.token, user: state.user }),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
       },
@@ -44,7 +44,6 @@ export const useAuthStore = create<AuthState>()(
   )
 );
 
-// ─── UI Store ──────────────────────────────────────────────────────────────────
 interface UIState {
   sidebarOpen: boolean;
   toggleSidebar: () => void;

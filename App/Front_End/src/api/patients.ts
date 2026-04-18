@@ -1,8 +1,12 @@
+// ─────────────────────────────────────────────────────────────
+// src/api/patients.ts (CLEAN + SECURE)
+// ─────────────────────────────────────────────────────────────
+
 import client from "./client";
 
 export const apiGetPatients = async (params?: any) => {
   const res = await client.get("/patients", { params });
-  return res.data; // { data: [], total, page }
+  return res.data;
 };
 
 export const apiGetPatient = async (id: number) => {
@@ -25,6 +29,11 @@ export const apiDeletePatient = async (id: number) => {
   return res.data;
 };
 
+export const apiSearchPatients = async (query: string) => {
+  const res = await client.get("/patients/search", { params: { q: query } });
+  return res.data;
+};
+
 export const apiGetPatientHistory = async (id: number) => {
   const res = await client.get(`/patients/${id}/history`);
   return res.data;
@@ -40,23 +49,36 @@ export const apiGetPatientFiles = async (id: number) => {
   return res.data;
 };
 
+// ─── Dental Chart ───────────────────────────────────────────
+
 export const apiGetDentalChart = async (id: number) => {
   const res = await client.get(`/patients/${id}/chart`);
   return res.data;
 };
 
-// Add this missing function
-export const apiUpdatePatientDentalChart = async (patientId: number, data: any) => {
-  const res = await client.post(`/patients/${patientId}/chart`, data);
+// unified update endpoint (IMPORTANT: consistent REST style)
+export const apiUpdateDentalChart = async (patientId: number, data: any) => {
+  const res = await client.put(`/patients/${patientId}/chart`, data);
   return res.data;
 };
 
-export const apiUpdateToothCondition = async (patientId: number, toothData: any) => {
-  const res = await client.patch(`/patients/${patientId}/chart/tooth`, toothData);
+export const apiUpdateToothCondition = async (
+  patientId: number,
+  toothData: any
+) => {
+  const res = await client.patch(
+    `/patients/${patientId}/chart/tooth`,
+    toothData
+  );
   return res.data;
 };
 
-export const apiBulkUpdateDentalChart = async (patientId: number, chartData: any[]) => {
-  const res = await client.put(`/patients/${patientId}/chart`, { chart: chartData });
+export const apiGetAllergies = async (patientId: number) => {
+  const res = await client.get(`/patients/${patientId}/allergies`);
+  return res.data;
+};
+
+export const apiGetConditions = async (patientId: number) => {
+  const res = await client.get(`/patients/${patientId}/conditions`);
   return res.data;
 };

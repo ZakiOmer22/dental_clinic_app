@@ -16,7 +16,7 @@ import {
   CartesianGrid, PieChart as RePieChart, Pie, Cell,
   LineChart, Line, Area, AreaChart, Legend
 } from "recharts";
-import { apiGetRevenueReport, apiGetDailySchedule, apiGetRecallsDue, apiGetExpenses } from "@/api/reports";
+import { apiGetRevenueReport, apiGetDailySchedule, apiGetRecallsDue } from "@/api/reports";
 import { apiGetPatients } from "@/api/patients";
 import { apiGetInvoices } from "@/api/billing";
 import { apiGetTreatments } from "@/api/treatments";
@@ -350,7 +350,7 @@ export default function ReportsPage() {
 
   const { data: expenses } = useQuery({
     queryKey: ["report-expenses", dateRange],
-    queryFn: () => apiGetExpenses({ startDate: dateRange.start, endDate: dateRange.end })
+    queryFn: () => apiGetRevenueReport({ startDate: dateRange.start, endDate: dateRange.end, type: 'expenses' })
   });
 
   const { data: patientsRes } = useQuery({

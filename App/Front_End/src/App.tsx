@@ -35,6 +35,9 @@ import { DoctorFeedbackPage } from "./pages/Doctor/DoctorFeedbackpage";
 import { ReceptionFeedbackPage } from "./pages/receptionist/ReceptionistFeedback";
 import { DoctorsReferralsPage } from "./pages/Doctor/DoctorsReferralsPage";
 import DoctorDentalChartPage from "./pages/Doctor/DoctorDentalChartPage";
+import AdminBillingPage from "@/pages/superAdmin/Settings/BillingPage";
+import SuperAdminDashboard from "@/pages/superAdmin/Dashboard";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 // Receptionist Routes
 import ReceptionistLayout from "./layouts/receptionist/ReceptionistLayout";
@@ -81,52 +84,85 @@ import AccountantLayout from "./layouts/Accountant/AccountantLayout";
 import AccountantDashboardPage from "./pages/accountant/Dashboard";
 import AccountantReportsPage from "./pages/accountant/AccountantReportsPage";
 import AccountantInvoicesPage from "./pages/accountant/AccountantInvoicesPage";
+import AccountantCreateInvoicePage from "./pages/accountant/AccountantCreateInvoicePage";
+import AccountantInvoicesListPage from "./pages/accountant/AccountantInvoicesListPage";
+import AccountantUnpaidInvoicesPage from "./pages/accountant/AccountantInvoicesListPage";
+import AccountantRefundsPage from "./pages/accountant/AccountantRefundsPage";
+import AccountantInsuranceClaimsPage from "./pages/accountant/AccountantInsuranceClaimsPage";
+import AccountantInsurancePoliciesPage from "./pages/accountant/AccountantInsurancePoliciesPage";
+import AccountantInsuranceVerificationPage from "./pages/accountant/AccountantInsuranceVerificationPage";
+import AccountantExpensesPage from "./pages/accountant/AccountantExpensesPage";
+import AccountantRevenuePage from "./pages/accountant/AccountantRevenuePage";
+import AccountantPatientBalancePage from "./pages/accountant/AccountantPatientBalancePage";
+import AccountantTaxReportsPage from "./pages/accountant/AccountantTaxReportsPage";
+import AccountantProceduresPage from "./pages/accountant/AccountantProceduresPage";
+import AccountantInventoryValuationPage from "./pages/accountant/AccountantInventoryValuationPage";
+import AccountantAuditLogsPage from "./pages/accountant/AccountantAuditLogsPage";
+import AccountantFinancialSettingsPage from "./pages/accountant/AccountantFinancialSettingsPage";
+import PDFViewer from "./components/ui/PDFViewer";
+import NotFoundPage from "./pages/NotFoundPage";
+import ResetPasswordPage from "./pages/ResetPassword";
+
+// Super Admin Routes
+import SuperAdminLayout from "./layouts/SuperAdmin/SAdminLayout";
+import ClinicsPage from "./pages/superAdmin/Clinics";
+import PlatformUsersPage from "./pages/superAdmin/PlatformUsers";
+import AnalyticsPage from "./pages/superAdmin/Analytics";
+import ClinicDetailsPage from "./pages/superAdmin/ClinicDetails";
+import UsageMetricsPage from "./pages/superAdmin/UsageMetrics";
+import SecurityPage from "./pages/superAdmin/Security";
+import PendingApprovalPage from "./pages/superAdmin/PendingApproval";
+import FeatureRequestsPage from "./pages/superAdmin/FeatureRequests";
+import { InvoicesPage } from "./pages/superAdmin/Invoices";
+import { GrowthPage } from "./pages/superAdmin/Growth";
+import SupportTicketsPage from "./pages/superAdmin/Support";
+import { PlatformSettingsPage } from "./pages/superAdmin/Settings";
+import PaymentsPage from "./pages/superAdmin/Payments";
+import AuditLogPage from "./pages/superAdmin/AuditLog";
 
 // ─── Waits for Zustand to finish reading localStorage before deciding ──────────
 function PrivateRoute({ children }: { children: React.ReactNode }) {
-  const token = useAuthStore((s) => s.token);
+  const user = useAuthStore((s) => s.user);
   const hasHydrated = useAuthStore((s) => s._hasHydrated);
 
-  // Still loading from localStorage — render nothing (or a spinner)
+  // Wait for store hydration
   if (!hasHydrated) {
-    console.log("Still hydrating...");
-    return null;
+    return null; // or spinner
   }
 
-  if (!token) {
-    console.log("No token, redirecting to login");
+  // No user = not authenticated
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  console.log("Token found, rendering children");
   return <>{children}</>;
 }
 
 export default function App() {
   const user = useAuthStore((s) => s.user);
 
-  console.log("Current user in App:", user);
-
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/reports/view" element={<PDFViewer />} />
 
       <Route
         path="/"
         element={
           <PrivateRoute>
-            {user?.role === 'dentist' ? (
+            {user?.role === 'super_admin' ? (
+              <SuperAdminLayout />
+            ) : user?.role === 'dentist' ? (
               <DoctorLayout />
             ) : user?.role === 'receptionist' ? (
               <ReceptionistLayout />
             ) : user?.role === 'assistant' ? (
               <AssistantLayout />
-            ) : user?.role === 'accountant' ?
-              (
-                <AccountantLayout />
-              ) : (
-                <DashboardLayout />
-              )}
+            ) : user?.role === 'accountant' ? (
+              <AccountantLayout />
+            ) : (
+              <DashboardLayout />
+            )}
           </PrivateRoute>
         }
       >
@@ -136,11 +172,36 @@ export default function App() {
           element={
             user?.role === 'dentist'
               ? <DoctorDashboardPage />
-              : <DashboardPage />
+              : user?.role === 'accountant'
+                ? <AccountantDashboardPage />
+                : user?.role === 'super_admin'
+                  ? <SuperAdminDashboard />
+                  : user?.role === 'receptionist'
+                    ? <ReceptionistDashboardPage />
+                    : user?.role === 'assistant'
+                      ? <AssistanceDashboardPage />
+                      : <DashboardPage />
           }
         />
 
-        {/* Admin Routes - all your existing routes */}
+        {/* Super Admin Routes - Business Focused */}
+        <Route path="admin/platform" element={<SuperAdminDashboard />} />
+        <Route path="admin/clinics" element={<ClinicsPage />} />
+        <Route path="admin/clinics/:id" element={<ClinicDetailsPage />} />
+        <Route path="admin/pending" element={<PendingApprovalPage />} />
+        <Route path="admin/users" element={<PlatformUsersPage />} />
+        <Route path="admin/requests" element={<FeatureRequestsPage />} />
+        <Route path="settings/billing" element={<AdminBillingPage />} />
+        <Route path="admin/reports/revenue" element={<AnalyticsPage />} />
+        <Route path="admin/reports/usage" element={<UsageMetricsPage />} />
+        <Route path="admin/invoices" element={<InvoicesPage />} />
+        <Route path="admin/payments" element={<PaymentsPage />} />
+        <Route path="admin/reports/growth" element={<GrowthPage />} />
+        <Route path="admin/support" element={<SupportTicketsPage />} />
+        <Route path="admin/settings" element={<PlatformSettingsPage />} />
+        <Route path="admin/audit" element={<AuditLogPage />} />
+
+        {/* Admin Routes */}
         <Route path="patients" element={<PatientsPage />} />
         <Route path="patients/:id" element={<PatientProfilePage />} />
         <Route path="appointments" element={<AppointmentsPage />} />
@@ -161,8 +222,9 @@ export default function App() {
         <Route path="system/audit" element={<AuditTrailPage />} />
         <Route path="system/storage" element={<StoragePage />} />
         <Route path="support/tickets" element={<SupportTicketPage />} />
+        <Route path="support/knowledge" element={<KnowledgeBasePage />} />
 
-        {/* Doctor Routes - Add these after Admin Routes but before closing tag */}
+        {/* Doctor Routes */}
         <Route path="doctor/patients" element={<DoctorPatientsPage />} />
         <Route path="doctor/patients/:id" element={<DoctorPatientProfilePage />} />
         <Route path="doctor/appointments" element={<AppointmentsPage />} />
@@ -174,7 +236,6 @@ export default function App() {
         <Route path="doctor/referrals" element={<DoctorsReferralsPage />} />
         <Route path="doctor/notifications" element={<NotificationsPage />} />
         <Route path="doctor/inventory" element={<InventoryPage />} />
-        <Route path="doctor/support/knowledge" element={<KnowledgeBasePage />} />
         <Route path="doctor/support/feedback" element={<DoctorFeedbackPage />} />
 
         {/* Receptionist Routes */}
@@ -185,10 +246,10 @@ export default function App() {
         <Route path="receptionist/appointments/calendar" element={<ReceptionistCalendarView appointments={[]} />} />
         <Route path="receptionist/consent-forms" element={<ReceptionistConsentFormsPage />} />
         <Route path="receptionist/appointments/today" element={<ReceptionistTodaySchedule />} />
-        <Route path="/receptionist/check-in" element={<ReceptionistCheckIn />} />
-        <Route path="/receptionist/patient-files" element={<ReceptionistPatientFiles />} />
-        <Route path="/support/feedback" element={<ReceptionFeedbackPage />} />
-        <Route path="/receptionist/receipts" element={<ReceptionistReceipts />} />
+        <Route path="receptionist/check-in" element={<ReceptionistCheckIn />} />
+        <Route path="receptionist/patient-files" element={<ReceptionistPatientFiles />} />
+        <Route path="support/feedback" element={<ReceptionFeedbackPage />} />
+        <Route path="receptionist/receipts" element={<ReceptionistReceipts />} />
         <Route path="receptionist/notifications" element={<ReceptionistNotificationsPage />} />
         <Route path="receptionist/invoices" element={<ReceptionistInvoicesPage />} />
         <Route path="receptionist/payments" element={<ReceptionistPaymentsPage />} />
@@ -219,28 +280,27 @@ export default function App() {
         <Route path="accountant" element={<AccountantDashboardPage />} />
         <Route path="accountant/reports" element={<AccountantReportsPage />} />
         <Route path="accountant/invoices" element={<AccountantInvoicesPage />} />
-        {/* <Route path="accountant/invoices/create" element={<AccountantCreateInvoicePage />} /> */}
-        {/* <Route path="accountant/invoices/list" element={<AccountantInvoicesListPage />} /> */}
-        {/* <Route path="accountant/invoices/unpaid" element={<AccountantUnpaidInvoicesPage />} /> */}
-        {/* <Route path="accountant/payments" element={<AccountantPaymentsPage />} /> */}
-        {/* <Route path="accountant/refunds" element={<AccountantRefundsPage />} /> */}
-        {/* <Route path="accountant/insurance/claims" element={<AccountantInsuranceClaimsPage />} /> */}
-        {/* <Route path="accountant/insurance/policies" element={<AccountantInsurancePoliciesPage />} /> */}
-        {/* <Route path="accountant/insurance/verification" element={<AccountantInsuranceVerificationPage />} /> */}
-        {/* <Route path="accountant/expenses" element={<AccountantExpensesPage />} /> */}
-        {/* <Route path="accountant/revenue" element={<AccountantRevenuePage />} /> */}
-        {/* <Route path="accountant/patient-balance" element={<AccountantPatientBalancePage />} /> */}
-        {/* <Route path="accountant/tax-reports" element={<AccountantTaxReportsPage />} /> */}
-        {/* <Route path="accountant/procedures" element={<AccountantProceduresPage />} /> */}
-        {/* <Route path="accountant/inventory/valuation" element={<AccountantInventoryValuationPage />} /> */}
-        {/* <Route path="accountant/audit-logs" element={<AccountantAuditLogsPage />} /> */}
-        {/* <Route path="accountant/financial-settings" element={<AccountantFinancialSettingsPage />} /> */}
-        {/* <Route path="accountant/support/knowledge" element={<AccountantKnowledgeBasePage />} /> */}
-        {/* <Route path="accountant/support/feedback" element={<AccountantFeedbackPage />} /> */}
-        {/* <Route path="accountant/notifications" element={<AccountantNotificationsPage />} /> */}
+        <Route path="accountant/invoices/create" element={<AccountantCreateInvoicePage />} />
+        <Route path="accountant/invoices/unpaid" element={<AccountantUnpaidInvoicesPage />} />
+        <Route path="accountant/refunds" element={<AccountantRefundsPage />} />
+        <Route path="accountant/insurance/claims" element={<AccountantInsuranceClaimsPage />} />
+        <Route path="accountant/insurance/policies" element={<AccountantInsurancePoliciesPage />} />
+        <Route path="accountant/insurance/verification" element={<AccountantInsuranceVerificationPage />} />
+        <Route path="accountant/expenses" element={<AccountantExpensesPage />} />
+        <Route path="accountant/revenue" element={<AccountantRevenuePage />} />
+        <Route path="accountant/patient-balance" element={<AccountantPatientBalancePage />} />
+        <Route path="accountant/tax-reports" element={<AccountantTaxReportsPage />} />
+        <Route path="accountant/procedures" element={<AccountantProceduresPage />} />
+        <Route path="accountant/inventory/valuation" element={<AccountantInventoryValuationPage />} />
+        <Route path="accountant/audit-logs" element={<AccountantAuditLogsPage />} />
+        <Route path="accountant/financial-settings" element={<AccountantFinancialSettingsPage />} />
       </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+      {/* 404 Page - Catch all unmatched routes */}
+      <Route path="*" element={<NotFoundPage />} />
+
+      {/* Reset Password Route */}
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
     </Routes>
   );
 }

@@ -9,7 +9,7 @@ import {
   Calendar, Phone, Mail, MapPin,
 } from "lucide-react";
 import { apiGetPatients, apiCreatePatient } from "@/api/patients";
-import { apiGetTodayAppointments } from "@/api/appointments";
+import { apiGetAppointments } from "@/api/appointments";
 import { formatCurrency, formatDate } from "@/utils";
 import toast from "react-hot-toast";
 
@@ -209,7 +209,7 @@ function Modal({ open, onClose, title, children, wide }: { open: boolean; onClos
 function TodayAppointments() {
   const { data: appointments, isLoading } = useQuery({
     queryKey: ["today-appointments"],
-    queryFn: () => apiGetTodayAppointments(),
+    queryFn: () => apiGetAppointments(),
   });
 
   const stats = useMemo(() => {

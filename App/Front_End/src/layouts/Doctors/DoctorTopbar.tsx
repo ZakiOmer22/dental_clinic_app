@@ -1,14 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { LogOut, Bell, Search, ChevronRight, X, Clock } from "lucide-react";
+import { LogOut, Bell, Search, ChevronRight, X, Clock, Calendar, AlertCircle, DollarSign, FileText, UserPlus, Activity } from "lucide-react";
 import { apiLogout } from "@/api/auth";
 import { useAuthStore } from "@/app/store";
-import { 
-  apiGetNotifications, 
-  apiMarkNotificationRead, 
-  apiMarkAllRead, 
+import {
+  apiGetNotifications,
+  apiMarkNotificationRead,
+  apiMarkAllRead,
   apiDeleteNotification,
-  apiGetUnreadCount 
+  apiGetUnreadCount
 } from "@/api/notifications";
 import toast from "react-hot-toast";
 import { APP_NAME } from "../APP_NAME";
@@ -25,6 +25,52 @@ interface Notification {
   actionUrl?: string;
   createdAt: string;
 }
+
+// Helper to get icon based on notification type
+const getNotificationIcon = (type: string) => {
+  switch (type) {
+    case 'appointment_reminder':
+    case 'appointment':
+      return Calendar;
+    case 'payment_due':
+    case 'payment':
+      return DollarSign;
+    case 'follow_up':
+    case 'recare':
+      return Activity;
+    case 'system':
+      return AlertCircle;
+    case 'lab':
+    case 'lab_order':
+      return FileText;
+    case 'patient':
+      return UserPlus;
+    default:
+      return Bell;
+  }
+};
+
+// Helper to get color based on notification type
+const getNotificationColor = (type: string) => {
+  switch (type) {
+    case 'appointment_reminder':
+    case 'appointment':
+      return "#3b82f6";
+    case 'payment_due':
+    case 'payment':
+      return "#0d9e75";
+    case 'follow_up':
+    case 'recare':
+      return "#8b5cf6";
+    case 'system':
+      return "#f59e0b";
+    case 'lab':
+    case 'lab_order':
+      return "#ec4899";
+    default:
+      return "#64748b";
+  }
+};
 
 // This should come from your API/routes configuration
 const getPageMeta = (pathname: string, role?: string) => {
@@ -152,16 +198,67 @@ export default function Topbar() {
     }
   }, [showSearch]);
 
+  // Keyboard shortcut for search (⌘K / Ctrl+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowSearch(true);
+      }
+      if (e.key === 'Escape' && showSearch) {
+        setShowSearch(false);
+        setSearchQuery("");
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [showSearch]);
+
   const fetchNotifications = async () => {
     setIsNotificationsLoading(true);
     try {
       const data = await apiGetNotifications();
-      setNotifications(data);
+      console.log('Raw notifications data:', data); // Debug log
+
+      // Handle different response structures
+      let notificationsArray: Notification[] = [];
+
+      if (Array.isArray(data)) {
+        notificationsArray = data;
+      } else if (data?.data && Array.isArray(data.data)) {
+        notificationsArray = data.data;
+      } else if (data?.notifications && Array.isArray(data.notifications)) {
+        notificationsArray = data.notifications;
+      } else if (data && typeof data === 'object') {
+        // If it's a single object, wrap in array
+        notificationsArray = [data as Notification];
+      } else {
+        console.warn('Unexpected notifications data format:', data);
+        notificationsArray = [];
+      }
+
+      // Ensure each notification has a color
+      const enrichedData = notificationsArray.map((n: any) => ({
+        id: n.id,
+        type: n.type || 'system',
+        title: n.title || 'Notification',
+        message: n.message || '',
+        read: n.is_read !== undefined ? n.is_read : (n.read || false),
+        color: n.color || getNotificationColor(n.type),
+        actionUrl: n.actionUrl || n.action_url || undefined,
+        createdAt: n.created_at || n.createdAt || new Date().toISOString(),
+        time: n.time || formatTime(n.created_at || n.createdAt || new Date().toISOString()),
+      }));
+
+      setNotifications(enrichedData);
+
       // Update unread count
-      const unread = data.filter((n: Notification) => !n.read).length;
+      const unread = enrichedData.filter((n: Notification) => !n.read).length;
       setUnreadCount(unread);
     } catch (error) {
-      toast.error("Failed to load notifications");
+      console.error("Failed to load notifications:", error);
+      // Don't show toast if it's just empty
     } finally {
       setIsNotificationsLoading(false);
     }
@@ -418,7 +515,7 @@ export default function Topbar() {
           )}
         </div>
 
-        {/* Notifications */}
+        {/* Notifications - WITH NUMBER BADGE */}
         <div style={{ position: "relative" }}>
           <button
             ref={bellRef}
@@ -448,12 +545,29 @@ export default function Topbar() {
             }}
           >
             <Bell size={16} strokeWidth={1.8} />
+
+            {/* NUMBER BADGE - Shows count instead of dot */}
             {unreadCount > 0 && (
               <span style={{
-                position: "absolute", top: 5, right: 5,
-                width: 8, height: 8, borderRadius: "50%",
-                background: "#ef4444", border: "2px solid #fff",
-              }} />
+                position: "absolute",
+                top: -4,
+                right: -4,
+                minWidth: 18,
+                height: 18,
+                padding: "0 5px",
+                borderRadius: 999,
+                background: "#ef4444",
+                color: "white",
+                fontSize: 10,
+                fontWeight: 700,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                border: "2px solid #fff",
+                lineHeight: 1,
+              }}>
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
             )}
           </button>
 
@@ -531,117 +645,129 @@ export default function Topbar() {
               <div style={{ maxHeight: 400, overflowY: "auto" }}>
                 {isNotificationsLoading ? (
                   <div style={{ padding: "40px 20px", textAlign: "center", color: "#94a3b8" }}>
-                    <div style={{ animation: "spin 1s linear infinite", width: 24, height: 24, margin: "0 auto 12px", border: "2px solid #e2e8f0", borderTopColor: "#0d9e75", borderRadius: "50%" }} />
+                    <div style={{
+                      animation: "spin 1s linear infinite",
+                      width: 24,
+                      height: 24,
+                      margin: "0 auto 12px",
+                      border: "2px solid #e2e8f0",
+                      borderTopColor: "#0d9e75",
+                      borderRadius: "50%"
+                    }} />
                     <p style={{ fontSize: 14 }}>Loading notifications...</p>
                   </div>
                 ) : notifications.length > 0 ? (
-                  notifications.map((notification) => (
-                    <div
-                      key={notification.id}
-                      onClick={() => handleNotificationClick(notification)}
-                      style={{
-                        padding: "16px 20px",
-                        borderBottom: "1px solid #f1f5f9",
-                        background: notification.read ? "#fff" : "#f0fdf9",
-                        cursor: "pointer",
-                        transition: "all 0.2s ease",
-                        position: "relative",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = "#f8fafc";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = notification.read ? "#fff" : "#f0fdf9";
-                      }}
-                    >
-                      <div style={{ display: "flex", gap: 12 }}>
-                        <div style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: 10,
-                          background: `${notification.color || "#0d9e75"}10`,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                        }}>
-                          <Bell size={18} color={notification.color || "#0d9e75"} />
-                        </div>
-                        <div style={{ flex: 1 }}>
+                  notifications.map((notification) => {
+                    const Icon = getNotificationIcon(notification.type);
+                    const color = notification.color || getNotificationColor(notification.type);
+                    return (
+                      <div
+                        key={notification.id}
+                        onClick={() => handleNotificationClick(notification)}
+                        style={{
+                          padding: "16px 20px",
+                          borderBottom: "1px solid #f1f5f9",
+                          background: notification.read ? "#fff" : "#f0fdf9",
+                          cursor: "pointer",
+                          transition: "all 0.2s ease",
+                          position: "relative",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "#f8fafc";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = notification.read ? "#fff" : "#f0fdf9";
+                        }}
+                      >
+                        <div style={{ display: "flex", gap: 12 }}>
                           <div style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: 10,
+                            background: `${color}10`,
                             display: "flex",
-                            alignItems: "flex-start",
-                            justifyContent: "space-between",
-                            gap: 8,
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
                           }}>
-                            <div>
-                              <p style={{
-                                fontSize: 13,
-                                fontWeight: 600,
-                                color: "#0f172a",
-                                marginBottom: 4,
-                              }}>
-                                {notification.title}
-                              </p>
-                              <p style={{
-                                fontSize: 12,
-                                color: "#475569",
-                                lineHeight: 1.5,
-                                marginBottom: 6,
-                              }}>
-                                {notification.message}
-                              </p>
-                              <span style={{
-                                fontSize: 11,
-                                color: "#94a3b8",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 4,
-                              }}>
-                                <Clock size={10} />
-                                {formatTime(notification.createdAt)}
-                              </span>
+                            <Icon size={18} color={color} />
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{
+                              display: "flex",
+                              alignItems: "flex-start",
+                              justifyContent: "space-between",
+                              gap: 8,
+                            }}>
+                              <div>
+                                <p style={{
+                                  fontSize: 13,
+                                  fontWeight: 600,
+                                  color: "#0f172a",
+                                  marginBottom: 4,
+                                }}>
+                                  {notification.title}
+                                </p>
+                                <p style={{
+                                  fontSize: 12,
+                                  color: "#475569",
+                                  lineHeight: 1.5,
+                                  marginBottom: 6,
+                                }}>
+                                  {notification.message}
+                                </p>
+                                <span style={{
+                                  fontSize: 11,
+                                  color: "#94a3b8",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 4,
+                                }}>
+                                  <Clock size={10} />
+                                  {formatTime(notification.createdAt)}
+                                </span>
+                              </div>
+                              <button
+                                onClick={(e) => handleDeleteNotification(notification.id, e)}
+                                style={{
+                                  background: "transparent",
+                                  border: "none",
+                                  padding: 4,
+                                  cursor: "pointer",
+                                  color: "#94a3b8",
+                                  borderRadius: 4,
+                                  display: "flex",
+                                  transition: "all 0.2s ease",
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = "#f1f5f9";
+                                  e.currentTarget.style.color = "#475569";
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = "transparent";
+                                  e.currentTarget.style.color = "#94a3b8";
+                                }}
+                              >
+                                <X size={12} />
+                              </button>
                             </div>
-                            <button
-                              onClick={(e) => handleDeleteNotification(notification.id, e)}
-                              style={{
-                                background: "transparent",
-                                border: "none",
-                                padding: 4,
-                                cursor: "pointer",
-                                color: "#94a3b8",
-                                borderRadius: 4,
-                                display: "flex",
-                                transition: "all 0.2s ease",
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.background = "#f1f5f9";
-                                e.currentTarget.style.color = "#475569";
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.background = "transparent";
-                                e.currentTarget.style.color = "#94a3b8";
-                              }}
-                            >
-                              <X size={12} />
-                            </button>
                           </div>
                         </div>
+                        {!notification.read && (
+                          <span style={{
+                            position: "absolute",
+                            left: 0,
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                            width: 3,
+                            height: 30,
+                            background: color,
+                            borderRadius: "0 4px 4px 0",
+                          }} />
+                        )}
                       </div>
-                      {!notification.read && (
-                        <span style={{
-                          position: "absolute",
-                          left: 0,
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          width: 3,
-                          height: 30,
-                          background: "#0d9e75",
-                          borderRadius: "0 4px 4px 0",
-                        }} />
-                      )}
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div style={{
                     padding: "40px 20px",
@@ -660,35 +786,37 @@ export default function Topbar() {
               </div>
 
               {/* Footer */}
-              <div style={{
-                padding: "12px 20px",
-                borderTop: "1px solid #e2e8f0",
-                background: "#f8fafc",
-                textAlign: "center",
-              }}>
-                <button
-                  onClick={handleViewAllNotifications}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    fontSize: 12,
-                    color: "#0d9e75",
-                    cursor: "pointer",
-                    fontWeight: 500,
-                    padding: "4px 12px",
-                    borderRadius: 6,
-                    transition: "all 0.2s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "rgba(13,158,117,0.05)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "transparent";
-                  }}
-                >
-                  View all notifications
-                </button>
-              </div>
+              {notifications.length > 0 && (
+                <div style={{
+                  padding: "12px 20px",
+                  borderTop: "1px solid #e2e8f0",
+                  background: "#f8fafc",
+                  textAlign: "center",
+                }}>
+                  <button
+                    onClick={handleViewAllNotifications}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      fontSize: 12,
+                      color: "#0d9e75",
+                      cursor: "pointer",
+                      fontWeight: 500,
+                      padding: "4px 12px",
+                      borderRadius: 6,
+                      transition: "all 0.2s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "rgba(13,158,117,0.05)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    View all notifications
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -714,13 +842,13 @@ export default function Topbar() {
               color: "#0f172a", lineHeight: 1.4,
               whiteSpace: "nowrap",
             }}>
-              {user?.fullName}
+              {user?.fullName || "User"}
             </p>
             <p style={{
               fontSize: 11, color: "#64748b",
               textTransform: "capitalize", lineHeight: 1.4,
             }}>
-              {user?.role}
+              {user?.role || "Staff"}
             </p>
           </div>
         </div>

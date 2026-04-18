@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { LogOut, Bell, Search, ChevronRight, X, CheckCircle2, AlertCircle, Calendar, Clock, DollarSign, FileText, MessageSquare } from "lucide-react";
+import { LogOut, Bell, Search, ChevronRight, X, Clock, Calendar, AlertCircle, DollarSign, FileText, UserPlus, Activity } from "lucide-react";
 import { apiLogout } from "@/api/auth";
 import { useAuthStore } from "@/app/store";
 import toast from "react-hot-toast";
 import { APP_NAME } from "./APP_NAME";
+import apiClient from "@/api/client";
 
 const PAGE_META: Record<string, { title: string; description: string }> = {
   "/":              { title: "Dashboard",     description: "Overview & today's activity" },
@@ -24,59 +25,78 @@ const PAGE_META: Record<string, { title: string; description: string }> = {
   "/settings":      { title: "Settings",      description: "Clinic configuration" },
 };
 
-// Mock notification data
-const NOTIFICATIONS = [
-  {
-    id: 1,
-    type: "appointment",
-    title: "New appointment request",
-    message: "Amina Hassan requested a root canal for tomorrow at 10:30",
-    time: "5 minutes ago",
-    read: false,
-    icon: Calendar,
-    color: "#3b82f6",
-  },
-  {
-    id: 2,
-    type: "alert",
-    title: "Low inventory alert",
-    message: "Anesthesia supplies running low (3 units left)",
-    time: "1 hour ago",
-    read: false,
-    icon: AlertCircle,
-    color: "#f59e0b",
-  },
-  {
-    id: 3,
-    type: "billing",
-    title: "Payment received",
-    message: "$450 payment received from Omar Nuur",
-    time: "3 hours ago",
-    read: true,
-    icon: DollarSign,
-    color: "#0d9e75",
-  },
-  {
-    id: 4,
-    type: "lab",
-    title: "Lab order ready",
-    message: "Crown for Hodan Jama is ready for pickup",
-    time: "5 hours ago",
-    read: true,
-    icon: FileText,
-    color: "#8b5cf6",
-  },
-  {
-    id: 5,
-    type: "message",
-    title: "New message from Dr. Smith",
-    message: "Regarding the patient referral for Mahad Ali",
-    time: "1 day ago",
-    read: true,
-    icon: MessageSquare,
-    color: "#ec4899",
-  },
-];
+interface Notification {
+  id: number;
+  type: string;
+  title: string;
+  message: string;
+  channel: string;
+  is_read: boolean;
+  created_at: string;
+  patient_id?: number;
+}
+
+// Helper to get icon based on notification type
+const getNotificationIcon = (type: string) => {
+  switch (type) {
+    case 'appointment_reminder':
+    case 'appointment':
+      return Calendar;
+    case 'payment_due':
+    case 'payment':
+      return DollarSign;
+    case 'follow_up':
+    case 'recare':
+      return Activity;
+    case 'system':
+      return AlertCircle;
+    case 'lab':
+    case 'lab_order':
+      return FileText;
+    case 'patient':
+      return UserPlus;
+    default:
+      return Bell;
+  }
+};
+
+// Helper to get color based on notification type
+const getNotificationColor = (type: string) => {
+  switch (type) {
+    case 'appointment_reminder':
+    case 'appointment':
+      return "#3b82f6";
+    case 'payment_due':
+    case 'payment':
+      return "#0d9e75";
+    case 'follow_up':
+    case 'recare':
+      return "#8b5cf6";
+    case 'system':
+      return "#f59e0b";
+    case 'lab':
+    case 'lab_order':
+      return "#ec4899";
+    default:
+      return "#64748b";
+  }
+};
+
+// Format relative time
+const formatRelativeTime = (dateString: string): string => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins} min${diffMins === 1 ? '' : 's'} ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+  if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+};
 
 export default function Topbar() {
   const loc      = useLocation();
@@ -85,9 +105,11 @@ export default function Topbar() {
   const clear    = useAuthStore((s) => s.clear);
 
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState(NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   
   const notificationRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -99,15 +121,28 @@ export default function Topbar() {
     weekday: "short", day: "numeric", month: "short", year: "numeric",
   });
 
-  const unreadCount = notifications.filter(n => !n.read).length;
-
   const initials = user?.fullName
     ?.split(" ")
     .map((n) => n[0])
     .slice(0, 2)
-    .join("") ?? "U";
+    .join("")
+    .toUpperCase() ?? "U";
 
-  // Click outside to close notifications
+  // Fetch unread count periodically
+  useEffect(() => {
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 30000); // Every 30 seconds
+    return () => clearInterval(interval);
+  }, []);
+
+  // Fetch notifications when dropdown opens
+  useEffect(() => {
+    if (showNotifications) {
+      fetchNotifications();
+    }
+  }, [showNotifications]);
+
+  // Click outside to close
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -132,38 +167,132 @@ export default function Topbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Focus search input when opened
+  // Keyboard shortcut for search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowSearch(true);
+      }
+      if (e.key === 'Escape' && showSearch) {
+        setShowSearch(false);
+        setSearchQuery("");
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [showSearch]);
+
   useEffect(() => {
     if (showSearch && searchInputRef.current) {
       searchInputRef.current.focus();
     }
   }, [showSearch]);
 
-  const handleLogout = async () => {
-    await apiLogout();
-    clear();
-    navigate("/login");
-    toast.success("Signed out successfully");
+  const fetchUnreadCount = async () => {
+    try {
+      const response = await apiClient.get('/notifications/unread-count');
+      setUnreadCount(response.data?.count || 0);
+    } catch (error) {
+      // Silently fail - don't show error for background fetch
+      console.debug("Failed to fetch unread count:", error);
+    }
   };
 
-  const markAsRead = (id: number) => {
+  const fetchNotifications = async () => {
+    setLoadingNotifications(true);
+    try {
+      const response = await apiClient.get('/notifications', {
+        params: { limit: 20 }
+      });
+      
+      const data = response.data?.data || response.data || [];
+      setNotifications(data);
+      
+      // Update unread count
+      const unread = data.filter((n: Notification) => !n.is_read).length;
+      setUnreadCount(unread);
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error);
+      // Don't show toast - just keep empty state
+    } finally {
+      setLoadingNotifications(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await apiLogout();
+      clear();
+      navigate("/login");
+      toast.success("Signed out successfully");
+    } catch (error) {
+      toast.error("Failed to sign out");
+    }
+  };
+
+  const markAsRead = async (id: number) => {
+    // Optimistic update
     setNotifications(prev =>
       prev.map(notif =>
-        notif.id === id ? { ...notif, read: true } : notif
+        notif.id === id ? { ...notif, is_read: true } : notif
       )
     );
+    setUnreadCount(prev => Math.max(0, prev - 1));
+    
+    try {
+      await apiClient.patch(`/notifications/${id}/read`);
+    } catch (error) {
+      console.error("Failed to mark as read:", error);
+      // Revert on error
+      fetchNotifications();
+    }
   };
 
-  const markAllAsRead = () => {
+  const markAllAsRead = async () => {
+    // Optimistic update
     setNotifications(prev =>
-      prev.map(notif => ({ ...notif, read: true }))
+      prev.map(notif => ({ ...notif, is_read: true }))
     );
-    toast.success("All notifications marked as read");
+    setUnreadCount(0);
+    
+    try {
+      await apiClient.patch('/notifications/read-all');
+      toast.success("All notifications marked as read");
+    } catch (error) {
+      toast.error("Failed to mark all as read");
+      fetchNotifications();
+    }
   };
 
-  const removeNotification = (id: number, e: React.MouseEvent) => {
+  const deleteNotification = async (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
+    
+    const wasUnread = !notifications.find(n => n.id === id)?.is_read;
+    
+    // Optimistic update
     setNotifications(prev => prev.filter(notif => notif.id !== id));
+    if (wasUnread) {
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    }
+    
+    try {
+      await apiClient.delete(`/notifications/${id}`);
+    } catch (error) {
+      console.error("Failed to delete notification:", error);
+      fetchNotifications();
+    }
+  };
+
+  const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchQuery.trim()) {
+      // TODO: Implement global search
+      console.log("Searching for:", searchQuery);
+      setShowSearch(false);
+      setSearchQuery("");
+      toast.success(`Searching for "${searchQuery}"`);
+    }
   };
 
   return (
@@ -182,68 +311,42 @@ export default function Topbar() {
       zIndex: 100,
     }}>
 
-      {/* ── Left: breadcrumb ─────────────────────────────── */}
+      {/* Left: breadcrumb */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1 }}>
-        <span style={{ 
-          fontSize: 13, 
-          color: "#64748b", 
-          whiteSpace: "nowrap",
-          fontWeight: 500,
-        }}>
+        <span style={{ fontSize: 13, color: "#64748b", whiteSpace: "nowrap", fontWeight: 500 }}>
           {APP_NAME}
         </span>
         <ChevronRight size={12} color="#94a3b8" strokeWidth={2} style={{ flexShrink: 0 }} />
-        <span style={{
-          fontSize: 15, fontWeight: 600, color: "#0f172a",
-          whiteSpace: "nowrap",
-        }}>
+        <span style={{ fontSize: 15, fontWeight: 600, color: "#0f172a", whiteSpace: "nowrap" }}>
           {meta.title}
         </span>
         {meta.description && (
           <>
-            <span style={{
-              width: 4, height: 4, borderRadius: "50%",
-              background: "#cbd5e1", flexShrink: 0,
-            }} />
-            <span style={{
-              fontSize: 13, color: "#64748b",
-              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-            }}>
+            <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#cbd5e1", flexShrink: 0 }} />
+            <span style={{ fontSize: 13, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {meta.description}
             </span>
           </>
         )}
       </div>
 
-      {/* ── Right: actions ───────────────────────────────── */}
+      {/* Right: actions */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
-
-        {/* Date pill */}
         <span style={{
-          fontSize: 12, color: "#475569",
-          background: "#f8fafc",
-          padding: "6px 14px",
-          borderRadius: 100,
-          border: "1px solid #e2e8f0",
-          whiteSpace: "nowrap",
-          fontVariantNumeric: "tabular-nums",
-          fontWeight: 500,
+          fontSize: 12, color: "#475569", background: "#f8fafc", padding: "6px 14px",
+          borderRadius: 100, border: "1px solid #e2e8f0", whiteSpace: "nowrap",
+          fontVariantNumeric: "tabular-nums", fontWeight: 500,
         }}>
           {today}
         </span>
 
-        {/* Search - Expanded or Collapsed */}
+        {/* Search */}
         <div ref={searchRef} style={{ position: "relative" }}>
           {showSearch ? (
             <div style={{
-              display: "flex",
-              alignItems: "center",
-              background: "#f8fafc",
-              border: "1px solid #e2e8f0",
-              borderRadius: 8,
-              padding: "4px 4px 4px 12px",
-              width: 280,
-              transition: "all 0.2s ease",
+              display: "flex", alignItems: "center", background: "#f8fafc",
+              border: "1px solid #e2e8f0", borderRadius: 8, padding: "4px 4px 4px 12px",
+              width: 280, transition: "all 0.2s ease",
             }}>
               <Search size={14} color="#94a3b8" />
               <input
@@ -252,36 +355,18 @@ export default function Topbar() {
                 placeholder="Search patients, appointments..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearch}
                 style={{
-                  border: "none",
-                  background: "transparent",
-                  padding: "6px 8px",
-                  fontSize: 13,
-                  width: "100%",
-                  outline: "none",
-                  color: "#0f172a",
+                  border: "none", background: "transparent", padding: "6px 8px",
+                  fontSize: 13, width: "100%", outline: "none", color: "#0f172a",
                 }}
               />
               <button
-                onClick={() => setShowSearch(false)}
+                onClick={() => { setShowSearch(false); setSearchQuery(""); }}
                 style={{
-                  background: "transparent",
-                  border: "none",
-                  padding: "4px 8px",
-                  cursor: "pointer",
-                  color: "#94a3b8",
-                  borderRadius: 6,
-                  display: "flex",
-                  alignItems: "center",
-                  transition: "all 0.2s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "#e2e8f0";
-                  e.currentTarget.style.color = "#475569";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "transparent";
-                  e.currentTarget.style.color = "#94a3b8";
+                  background: "transparent", border: "none", padding: "4px 8px",
+                  cursor: "pointer", color: "#94a3b8", borderRadius: 6,
+                  display: "flex", alignItems: "center", transition: "all 0.2s ease",
                 }}
               >
                 <X size={14} />
@@ -291,72 +376,39 @@ export default function Topbar() {
             <button
               onClick={() => setShowSearch(true)}
               style={{
-                display: "flex", alignItems: "center", gap: 8,
-                padding: "6px 14px", borderRadius: 8,
-                border: "1px solid #e2e8f0", background: "#f8fafc",
-                cursor: "pointer", color: "#475569", fontSize: 13,
-                fontFamily: "inherit", transition: "all .15s",
-                height: 36,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = "#0d9e75";
-                e.currentTarget.style.background = "#fff";
-                e.currentTarget.style.color = "#0d9e75";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = "#e2e8f0";
-                e.currentTarget.style.background = "#f8fafc";
-                e.currentTarget.style.color = "#475569";
+                display: "flex", alignItems: "center", gap: 8, padding: "6px 14px",
+                borderRadius: 8, border: "1px solid #e2e8f0", background: "#f8fafc",
+                cursor: "pointer", color: "#475569", fontSize: 13, height: 36,
               }}
             >
               <Search size={14} strokeWidth={2} />
               <span>Search</span>
               <kbd style={{
-                fontSize: 10, background: "#e2e8f0",
-                padding: "2px 6px", borderRadius: 4,
-                color: "#475569", fontFamily: "inherit",
-              }}>
-                ⌘K
-              </kbd>
+                fontSize: 10, background: "#e2e8f0", padding: "2px 6px",
+                borderRadius: 4, color: "#475569",
+              }}>⌘K</kbd>
             </button>
           )}
         </div>
 
-        {/* Notifications bell with dropdown */}
+        {/* Notifications bell */}
         <div style={{ position: "relative" }}>
           <button
             ref={bellRef}
             onClick={() => setShowNotifications(!showNotifications)}
             style={{
-              width: 36, height: 36, borderRadius: 8,
-              border: "1px solid #e2e8f0", 
-              background: showNotifications ? "#fff" : "#f8fafc",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              cursor: "pointer", position: "relative", 
-              color: showNotifications ? "#0d9e75" : "#475569",
-              transition: "all .15s", flexShrink: 0,
-            }}
-            onMouseEnter={(e) => {
-              if (!showNotifications) {
-                e.currentTarget.style.borderColor = "#0d9e75";
-                e.currentTarget.style.color = "#0d9e75";
-                e.currentTarget.style.background = "#fff";
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!showNotifications) {
-                e.currentTarget.style.borderColor = "#e2e8f0";
-                e.currentTarget.style.color = "#475569";
-                e.currentTarget.style.background = "#f8fafc";
-              }
+              width: 36, height: 36, borderRadius: 8, border: "1px solid #e2e8f0",
+              background: showNotifications ? "#fff" : "#f8fafc", display: "flex",
+              alignItems: "center", justifyContent: "center", cursor: "pointer",
+              position: "relative", color: showNotifications ? "#0d9e75" : "#475569",
+              flexShrink: 0,
             }}
           >
             <Bell size={16} strokeWidth={1.8} />
             {unreadCount > 0 && (
               <span style={{
-                position: "absolute", top: 5, right: 5,
-                width: 8, height: 8, borderRadius: "50%",
-                background: "#ef4444", border: "2px solid #fff",
+                position: "absolute", top: 5, right: 5, width: 8, height: 8,
+                borderRadius: "50%", background: "#ef4444", border: "2px solid #fff",
               }} />
             )}
           </button>
@@ -366,26 +418,16 @@ export default function Topbar() {
             <div
               ref={notificationRef}
               style={{
-                position: "absolute",
-                top: "calc(100% + 8px)",
-                right: 0,
-                width: 380,
-                background: "#fff",
-                borderRadius: 12,
-                border: "1px solid #e2e8f0",
-                boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.02)",
-                zIndex: 1000,
-                overflow: "hidden",
-                animation: "slideDown 0.2s ease-out",
+                position: "absolute", top: "calc(100% + 8px)", right: 0, width: 380,
+                background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0",
+                boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)",
+                zIndex: 1000, overflow: "hidden", animation: "slideDown 0.2s ease-out",
               }}
             >
               {/* Header */}
               <div style={{
-                padding: "16px 20px",
-                borderBottom: "1px solid #e2e8f0",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
+                padding: "16px 20px", borderBottom: "1px solid #e2e8f0",
+                display: "flex", alignItems: "center", justifyContent: "space-between",
                 background: "#f8fafc",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -395,12 +437,8 @@ export default function Topbar() {
                   </span>
                   {unreadCount > 0 && (
                     <span style={{
-                      background: "#0d9e75",
-                      color: "white",
-                      fontSize: 11,
-                      fontWeight: 600,
-                      padding: "2px 8px",
-                      borderRadius: 100,
+                      background: "#0d9e75", color: "white", fontSize: 11,
+                      fontWeight: 600, padding: "2px 8px", borderRadius: 100,
                     }}>
                       {unreadCount} new
                     </span>
@@ -410,118 +448,78 @@ export default function Topbar() {
                   <button
                     onClick={markAllAsRead}
                     style={{
-                      background: "transparent",
-                      border: "none",
-                      fontSize: 12,
-                      color: "#0d9e75",
-                      cursor: "pointer",
-                      padding: "4px 8px",
+                      background: "transparent", border: "none", fontSize: 12,
+                      color: "#0d9e75", cursor: "pointer", padding: "4px 8px",
                       borderRadius: 6,
-                      transition: "all 0.2s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "rgba(13,158,117,0.05)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "transparent";
                     }}
                   >
-                    Mark all as read
+                    Mark all read
                   </button>
                 )}
               </div>
 
               {/* Notifications list */}
               <div style={{ maxHeight: 400, overflowY: "auto" }}>
-                {notifications.length > 0 ? (
+                {loadingNotifications ? (
+                  <div style={{ padding: "40px 20px", textAlign: "center", color: "#94a3b8" }}>
+                    <div style={{
+                      width: 24, height: 24, borderRadius: "50%",
+                      border: "2px solid #e2e8f0", borderTopColor: "#0d9e75",
+                      animation: "spin 0.7s linear infinite", margin: "0 auto 12px",
+                    }} />
+                    <p style={{ fontSize: 13 }}>Loading notifications...</p>
+                  </div>
+                ) : notifications.length > 0 ? (
                   notifications.map((notif) => {
-                    const Icon = notif.icon;
+                    const Icon = getNotificationIcon(notif.type);
+                    const color = getNotificationColor(notif.type);
                     return (
                       <div
                         key={notif.id}
                         onClick={() => markAsRead(notif.id)}
                         style={{
-                          padding: "16px 20px",
-                          borderBottom: "1px solid #f1f5f9",
-                          background: notif.read ? "#fff" : "#f0fdf9",
-                          cursor: "pointer",
-                          transition: "all 0.2s ease",
-                          position: "relative",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = "#f8fafc";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = notif.read ? "#fff" : "#f0fdf9";
+                          padding: "16px 20px", borderBottom: "1px solid #f1f5f9",
+                          background: notif.is_read ? "#fff" : "#f0fdf9",
+                          cursor: "pointer", position: "relative",
                         }}
                       >
                         <div style={{ display: "flex", gap: 12 }}>
                           <div style={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: 10,
-                            background: `${notif.color}10`,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            flexShrink: 0,
+                            width: 36, height: 36, borderRadius: 10,
+                            background: `${color}10`, display: "flex",
+                            alignItems: "center", justifyContent: "center", flexShrink: 0,
                           }}>
-                            <Icon size={18} color={notif.color} />
+                            <Icon size={18} color={color} />
                           </div>
                           <div style={{ flex: 1 }}>
                             <div style={{
-                              display: "flex",
-                              alignItems: "flex-start",
-                              justifyContent: "space-between",
-                              gap: 8,
+                              display: "flex", alignItems: "flex-start",
+                              justifyContent: "space-between", gap: 8,
                             }}>
                               <div>
                                 <p style={{
-                                  fontSize: 13,
-                                  fontWeight: 600,
-                                  color: "#0f172a",
-                                  marginBottom: 4,
+                                  fontSize: 13, fontWeight: 600, color: "#0f172a", marginBottom: 4,
                                 }}>
                                   {notif.title}
                                 </p>
                                 <p style={{
-                                  fontSize: 12,
-                                  color: "#475569",
-                                  lineHeight: 1.5,
-                                  marginBottom: 6,
+                                  fontSize: 12, color: "#475569", lineHeight: 1.5, marginBottom: 6,
                                 }}>
                                   {notif.message}
                                 </p>
                                 <span style={{
-                                  fontSize: 11,
-                                  color: "#94a3b8",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 4,
+                                  fontSize: 11, color: "#94a3b8", display: "flex",
+                                  alignItems: "center", gap: 4,
                                 }}>
                                   <Clock size={10} />
-                                  {notif.time}
+                                  {formatRelativeTime(notif.created_at)}
                                 </span>
                               </div>
                               <button
-                                onClick={(e) => removeNotification(notif.id, e)}
+                                onClick={(e) => deleteNotification(notif.id, e)}
                                 style={{
-                                  background: "transparent",
-                                  border: "none",
-                                  padding: 4,
-                                  cursor: "pointer",
-                                  color: "#94a3b8",
-                                  borderRadius: 4,
-                                  display: "flex",
-                                  transition: "all 0.2s ease",
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.background = "#f1f5f9";
-                                  e.currentTarget.style.color = "#475569";
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.background = "transparent";
-                                  e.currentTarget.style.color = "#94a3b8";
+                                  background: "transparent", border: "none", padding: 4,
+                                  cursor: "pointer", color: "#94a3b8", borderRadius: 4,
                                 }}
                               >
                                 <X size={12} />
@@ -529,16 +527,11 @@ export default function Topbar() {
                             </div>
                           </div>
                         </div>
-                        {!notif.read && (
+                        {!notif.is_read && (
                           <span style={{
-                            position: "absolute",
-                            left: 0,
-                            top: "50%",
-                            transform: "translateY(-50%)",
-                            width: 3,
-                            height: 30,
-                            background: "#0d9e75",
-                            borderRadius: "0 4px 4px 0",
+                            position: "absolute", left: 0, top: "50%",
+                            transform: "translateY(-50%)", width: 3, height: 30,
+                            background: "#0d9e75", borderRadius: "0 4px 4px 0",
                           }} />
                         )}
                       </div>
@@ -546,9 +539,7 @@ export default function Topbar() {
                   })
                 ) : (
                   <div style={{
-                    padding: "40px 20px",
-                    textAlign: "center",
-                    color: "#94a3b8",
+                    padding: "40px 20px", textAlign: "center", color: "#94a3b8",
                   }}>
                     <Bell size={32} style={{ marginBottom: 12, opacity: 0.5 }} />
                     <p style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>
@@ -562,38 +553,26 @@ export default function Topbar() {
               </div>
 
               {/* Footer */}
-              <div style={{
-                padding: "12px 20px",
-                borderTop: "1px solid #e2e8f0",
-                background: "#f8fafc",
-                textAlign: "center",
-              }}>
-                <button
-                  onClick={() => {
-                    setShowNotifications(false);
-                    navigate("/notifications");
-                  }}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    fontSize: 12,
-                    color: "#0d9e75",
-                    cursor: "pointer",
-                    fontWeight: 500,
-                    padding: "4px 12px",
-                    borderRadius: 6,
-                    transition: "all 0.2s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "rgba(13,158,117,0.05)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "transparent";
-                  }}
-                >
-                  View all notifications
-                </button>
-              </div>
+              {notifications.length > 0 && (
+                <div style={{
+                  padding: "12px 20px", borderTop: "1px solid #e2e8f0",
+                  background: "#f8fafc", textAlign: "center",
+                }}>
+                  <button
+                    onClick={() => {
+                      setShowNotifications(false);
+                      navigate("/notifications");
+                    }}
+                    style={{
+                      background: "transparent", border: "none", fontSize: 12,
+                      color: "#0d9e75", cursor: "pointer", fontWeight: 500,
+                      padding: "4px 12px", borderRadius: 6,
+                    }}
+                  >
+                    View all notifications
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -608,24 +587,16 @@ export default function Topbar() {
             background: "linear-gradient(135deg, #0d9e75, #0a7d5d)",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 13, fontWeight: 600, color: "white", flexShrink: 0,
-            letterSpacing: "-.01em",
             boxShadow: "0 4px 6px -1px rgba(13,158,117,0.2)",
           }}>
             {initials}
           </div>
           <div>
-            <p style={{
-              fontSize: 13, fontWeight: 600,
-              color: "#0f172a", lineHeight: 1.4,
-              whiteSpace: "nowrap",
-            }}>
-              {user?.fullName}
+            <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", lineHeight: 1.4, whiteSpace: "nowrap" }}>
+              {user?.fullName || "User"}
             </p>
-            <p style={{
-              fontSize: 11, color: "#64748b",
-              textTransform: "capitalize", lineHeight: 1.4,
-            }}>
-              {user?.role}
+            <p style={{ fontSize: 11, color: "#64748b", textTransform: "capitalize", lineHeight: 1.4 }}>
+              {user?.role || "Staff"}
             </p>
           </div>
         </div>
@@ -635,11 +606,10 @@ export default function Topbar() {
           onClick={handleLogout}
           title="Sign out"
           style={{
-            width: 36, height: 36, borderRadius: 8,
-            border: "1px solid #e2e8f0", background: "#f8fafc",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            cursor: "pointer", color: "#64748b",
-            transition: "all .15s", flexShrink: 0,
+            width: 36, height: 36, borderRadius: 8, border: "1px solid #e2e8f0",
+            background: "#f8fafc", display: "flex", alignItems: "center",
+            justifyContent: "center", cursor: "pointer", color: "#64748b",
+            flexShrink: 0,
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.borderColor = "#fecaca";
@@ -656,17 +626,13 @@ export default function Topbar() {
         </button>
       </div>
 
-      {/* Global styles for animations */}
       <style>{`
         @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
         }
       `}</style>
     </header>

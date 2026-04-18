@@ -5,7 +5,8 @@ import {
   FlaskConical, FileText, Bell, Settings, UserCog,
   ClipboardList, Wallet, HelpCircle, Shield, Database,
   HardDrive, Terminal, LifeBuoy, Mail, MessageSquare,
-  BookOpen, AlertCircle, CheckCircle, Download, Upload
+  BookOpen, AlertCircle, CheckCircle, Download, Upload,
+  Crown
 } from "lucide-react";
 import { useUIStore, useAuthStore } from "@/app/store";
 
@@ -80,7 +81,6 @@ const NAV_SECTIONS = [
       { path: "/staff", label: "Staff", icon: UserCog },
       { path: "/settings", label: "Settings", icon: Settings },
       { path: "/users", label: "Users", icon: Users },
-
     ],
   },
 ];

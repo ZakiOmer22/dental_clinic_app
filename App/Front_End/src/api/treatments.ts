@@ -35,7 +35,8 @@ export const apiAddLabOrder = async (treatmentId: number, data: any) => {
   return res.data;
 };
 
+// DELETE THIS
 export const apiGetProceduresCatalog = async () => {
-  const res = await client.get("/procedures");
+  const res = await client.get("/procedures-catalog");
   return res.data;
 };

@@ -1,83 +1,74 @@
-// src/api/knowledgeBase.ts
-import axios from "axios";
+import client from "./client";
 
-const API_BASE = import.meta.env.VITE_API_URL || "/api";
+// ─────────────────────────────
+// TYPES
+// ─────────────────────────────
 
-// Types
 export interface KnowledgeArticle {
-    id: number;
-    title: string;
-    content: string;
-    category: string;
-    tags: string;
-    views: number;
-    helpful_count: number;
-    author_id: number;
-    created_at: string;
-    updated_at: string;
-    is_published?: boolean;
+  id: number;
+  title: string;
+  content: string;
+  category: string;
+  tags?: string;
+  views: number;
+  helpful_count: number;
+  author_id: number;
+  created_at: string;
+  updated_at: string;
+  is_published?: boolean;
 }
 
 export interface CreateArticleData {
-    title: string;
-    content: string;
-    category: string;
-    tags?: string;
-    authorId?: number;
+  title: string;
+  content: string;
+  category: string;
+  tags?: string;
 }
 
-// ============================================================
-// PUBLIC ENDPOINTS (Used by users)
-// ============================================================
+// ─────────────────────────────
+// PUBLIC ENDPOINTS
+// ─────────────────────────────
 
-// Get all articles (public)
-export const apiGetArticles = async (): Promise<{ data: KnowledgeArticle[]; total: number; success: boolean }> => {
-    const response = await axios.get(`${API_BASE}/knowledge-base/articles`);
-    return response.data;
+export const apiGetArticles = async () => {
+  const res = await client.get("/knowledge-base/articles");
+  return res.data;
 };
 
-// Get single article (public)
-export const apiGetArticle = async (id: number): Promise<{ success: boolean; data: KnowledgeArticle }> => {
-    const response = await axios.get(`${API_BASE}/knowledge-base/articles/${id}`);
-    return response.data;
+export const apiGetArticle = async (id: number) => {
+  const res = await client.get(`/knowledge-base/articles/${id}`);
+  return res.data;
 };
 
-// Increment view count (public)
-export const apiIncrementViews = async (id: number): Promise<{ success: boolean; message: string }> => {
-    const response = await axios.post(`${API_BASE}/knowledge-base/articles/${id}/views`);
-    return response.data;
+export const apiIncrementViews = async (id: number) => {
+  const res = await client.post(`/knowledge-base/articles/${id}/views`);
+  return res.data;
 };
 
-// Mark as helpful (public)
-export const apiMarkHelpful = async (id: number): Promise<{ success: boolean; message: string }> => {
-    const response = await axios.post(`${API_BASE}/knowledge-base/articles/${id}/helpful`);
-    return response.data;
+export const apiMarkHelpful = async (id: number) => {
+  const res = await client.post(`/knowledge-base/articles/${id}/helpful`);
+  return res.data;
 };
 
-// ============================================================
-// ADMIN ENDPOINTS (Only for admin panel)
-// ============================================================
+// ─────────────────────────────
+// ADMIN ENDPOINTS (PROTECTED VIA JWT CLIENT)
+// ─────────────────────────────
 
-// Create article (admin only)
-export const apiCreateArticle = async (data: CreateArticleData): Promise<{ success: boolean; data: KnowledgeArticle }> => {
-    const response = await axios.post(`${API_BASE}/knowledge-base/admin/articles`, data);
-    return response.data;
+export const apiCreateArticle = async (data: CreateArticleData) => {
+  const res = await client.post("/knowledge-base/admin/articles", data);
+  return res.data;
 };
 
-// Update article (admin only)
-export const apiUpdateArticle = async (id: number, data: Partial<CreateArticleData>): Promise<{ success: boolean; data: KnowledgeArticle }> => {
-    const response = await axios.put(`${API_BASE}/knowledge-base/admin/articles/${id}`, data);
-    return response.data;
+export const apiUpdateArticle = async (id: number, data: Partial<CreateArticleData>) => {
+  const res = await client.put(`/knowledge-base/admin/articles/${id}`, data);
+  return res.data;
 };
 
-// Delete article (admin only)
-export const apiDeleteArticle = async (id: number): Promise<{ success: boolean; message: string }> => {
-    const response = await axios.delete(`${API_BASE}/knowledge-base/admin/articles/${id}`);
-    return response.data;
+export const apiDeleteArticle = async (id: number) => {
+  const res = await client.delete(`/knowledge-base/admin/articles/${id}`);
+  return res.data;
 };
 
-// Get all articles for admin (including unpublished)
-export const apiGetAllArticlesAdmin = async (): Promise<{ data: KnowledgeArticle[]; total: number; success: boolean }> => {
-    const response = await axios.get(`${API_BASE}/knowledge-base/admin/articles`);
-    return response.data;
+export const apiGetAllArticlesAdmin = async () => {
+  const res = await client.get("/knowledge-base/admin/articles");
+  return res.data;
 };

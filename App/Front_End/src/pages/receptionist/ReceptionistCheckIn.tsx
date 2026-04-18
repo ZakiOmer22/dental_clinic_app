@@ -10,8 +10,7 @@ import {
   ChevronLeft, TrendingUp, QrCode, Camera,
 } from "lucide-react";
 import {
-  apiGetAppointments, apiCreateAppointment,
-  apiUpdateAppointmentStatus, apiDeleteAppointment,
+  apiGetAppointments, apiCreateAppointment, apiDeleteAppointment,
 } from "@/api/appointments";
 import { apiGetPatients } from "@/api/patients";
 import { useAuthStore } from "@/app/store";
@@ -418,7 +417,14 @@ export default function ReceptionistCheckIn() {
   // Mutations
   const updateMut = useMutation({
     mutationFn: ({ id, status }: { id: number; status: string }) => 
-      apiUpdateAppointmentStatus(id, status),
+      fetch(`/api/appointments/${id}/update-status`, {  
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      }).then(res => {
+        if (!res.ok) throw new Error("Failed to update status");
+        return res.json();
+      }),
     onSuccess: () => {
       toast.success("Status updated successfully");
       qc.invalidateQueries({ queryKey: ["appointments"] });

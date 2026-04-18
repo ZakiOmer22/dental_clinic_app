@@ -7,7 +7,7 @@ import {
   Wallet, Bell, ArrowUpRight, MoreHorizontal,
   CheckCircle2, XCircle, Timer,
 } from "lucide-react";
-import { apiGetTodayAppointments } from "@/api/appointments";
+import { apiGetAppointments } from "@/api/appointments";
 import { apiGetPatients } from "@/api/patients";
 import { apiGetInvoices } from "@/api/billing";
 import { apiGetLowStock } from "@/api/inventory";
@@ -338,7 +338,7 @@ export default function ReceptionistDashboardPage() {
 
   const { data: todayAppts, isLoading: loadingAppts } = useQuery({
     queryKey: ["appointments", "today"],
-    queryFn: apiGetTodayAppointments,
+    queryFn: apiGetAppointments,
   });
   const { data: patientsRes } = useQuery({
     queryKey: ["patients", "count"],

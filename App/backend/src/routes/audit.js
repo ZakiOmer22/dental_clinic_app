@@ -1,32 +1,43 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// src/routes/audit.js
-// ─────────────────────────────────────────────────────────────────────────────
-
 const router = require('express').Router();
 const pool = require('../db/pool');
 const auth = require('../middleware/auth');
+const allow = require('../middleware/roles');
 
-// Helper function to convert to CSV
+// ─────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────
+
+const safeParse = (val) => {
+  try {
+    return val ? JSON.parse(val) : null;
+  } catch {
+    return null;
+  }
+};
+
 const convertToCSV = (rows) => {
   if (!rows || !rows.length) return 'No data';
 
-  const headers = ['Timestamp', 'User', 'Action', 'Table', 'Record ID', 'Description', 'IP Address', 'User Agent'];
-  const csvRows = [];
+  const headers = [
+    'Timestamp',
+    'User',
+    'Action',
+    'Table',
+    'Record ID',
+    'IP Address'
+  ];
 
-  csvRows.push(headers.join(','));
+  const csvRows = [headers.join(',')];
 
   for (const row of rows) {
-    const description = `${row.action} on ${row.table_name}` + (row.record_id ? ` (ID: ${row.record_id})` : '');
     const values = [
       row.created_at,
       row.user_name || 'System',
       row.action,
       row.table_name,
       row.record_id || '',
-      description,
-      row.ip_address || '',
-      (row.user_agent || '').replace(/,/g, ';')
-    ].map(value => `"${String(value).replace(/"/g, '""')}"`);
+      row.ip_address || ''
+    ].map(v => `"${String(v ?? '').replace(/"/g, '""')}"`);
 
     csvRows.push(values.join(','));
   }
@@ -34,14 +45,14 @@ const convertToCSV = (rows) => {
   return csvRows.join('\n');
 };
 
-/**
- * GET /audit-logs
- * Get audit logs with filtering
- */
-router.get('/', auth, async (req, res) => {
-  try {
-    console.log('GET /audit-logs called with query:', req.query);
+// ─────────────────────────────────────────────
+// SECURITY: ALL ROUTES ADMIN ONLY
+// (audit logs = medical/legal data)
+// ─────────────────────────────────────────────
 
+// GET /audit-logs
+router.get('/', auth, allow('admin'), async (req, res) => {
+  try {
     const {
       tableName,
       action,
@@ -53,467 +64,290 @@ router.get('/', auth, async (req, res) => {
       limit = 50
     } = req.query;
 
-    const offset = (parseInt(page) - 1) * parseInt(limit);
-    const params = [req.user.clinicId];
-    let whereClause = 'al.clinic_id = $1';
-    let paramIndex = 1;
+    const MAX_LIMIT = 100;
+    const safeLimit = Math.min(Number(limit), MAX_LIMIT);
+    const offset = (Number(page) - 1) * safeLimit;
 
-    // Apply filters
+    const params = [req.user.clinicId];
+    let where = 'al.clinic_id = $1';
+    let i = 1;
+
     if (tableName) {
-      paramIndex++;
       params.push(tableName);
-      whereClause += ` AND al.table_name = $${paramIndex}`;
+      where += ` AND al.table_name = $${++i}`;
     }
 
     if (action) {
-      paramIndex++;
       params.push(action);
-      whereClause += ` AND al.action = $${paramIndex}`;
+      where += ` AND al.action = $${++i}`;
     }
 
     if (userId) {
-      paramIndex++;
       params.push(userId);
-      whereClause += ` AND al.user_id = $${paramIndex}`;
+      where += ` AND al.user_id = $${++i}`;
     }
 
     if (from) {
-      paramIndex++;
       params.push(from);
-      whereClause += ` AND al.created_at >= $${paramIndex}`;
+      where += ` AND al.created_at >= $${++i}`;
     }
 
     if (to) {
-      paramIndex++;
       params.push(to + ' 23:59:59');
-      whereClause += ` AND al.created_at <= $${paramIndex}`;
+      where += ` AND al.created_at <= $${++i}`;
     }
 
     if (search) {
-      paramIndex++;
       params.push(`%${search}%`);
-      whereClause += ` AND (
-                al.table_name ILIKE $${paramIndex} OR 
-                al.action ILIKE $${paramIndex} OR 
-                u.full_name ILIKE $${paramIndex}
-            )`;
+      where += ` AND (
+        al.table_name ILIKE $${++i} OR
+        al.action ILIKE $${i}
+      )`;
     }
 
-    // Get total count
-    const countResult = await pool.query(
-      `SELECT COUNT(*) FROM audit_logs al 
-             LEFT JOIN users u ON al.user_id = u.id 
-             WHERE ${whereClause}`,
+    // Count
+    const count = await pool.query(
+      `SELECT COUNT(*) FROM audit_logs al WHERE ${where}`,
       params
     );
-    const total = parseInt(countResult.rows[0].count);
 
-    // Get paginated results
-    paramIndex += 2;
+    const total = parseInt(count.rows[0].count);
+
+    // Data
+    params.push(safeLimit, offset);
+
     const result = await pool.query(
       `SELECT 
-                al.*, 
-                u.full_name AS user_name,
-                u.email AS user_email
-             FROM audit_logs al 
-             LEFT JOIN users u ON al.user_id = u.id 
-             WHERE ${whereClause} 
-             ORDER BY al.created_at DESC 
-             LIMIT $${paramIndex - 1} OFFSET $${paramIndex}`,
-      [...params, parseInt(limit), offset]
+        al.*,
+        u.full_name AS user_name
+       FROM audit_logs al
+       LEFT JOIN users u ON al.user_id = u.id
+       WHERE ${where}
+       ORDER BY al.created_at DESC
+       LIMIT $${params.length - 1}
+       OFFSET $${params.length}`,
+      params
     );
 
-    // Transform data for frontend
-    const data = result.rows.map(row => ({
+    const data = result.rows.map((row) => ({
       ...row,
-      old_values: row.old_values ? JSON.parse(row.old_values) : null,
-      new_values: row.new_values ? JSON.parse(row.new_values) : null,
-      changes: {
-        old: row.old_values ? JSON.parse(row.old_values) : {},
-        new: row.new_values ? JSON.parse(row.new_values) : {}
-      },
-      description: `${row.action} on ${row.table_name}` + (row.record_id ? ` (ID: ${row.record_id})` : '')
+      old_values: safeParse(row.old_values),
+      new_values: safeParse(row.new_values),
     }));
 
     res.json({
       data,
       total,
-      page: parseInt(page),
-      limit: parseInt(limit),
-      totalPages: Math.ceil(total / parseInt(limit))
+      page: Number(page),
+      limit: safeLimit,
+      totalPages: Math.ceil(total / safeLimit),
     });
   } catch (err) {
-    console.error('Error in GET /audit-logs:', err);
-    res.status(500).json({ error: 'Server error', details: err.message });
+    console.error('Audit logs error:', err.message);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
-/**
- * GET /audit-logs/stats
- * Get audit statistics
- */
-router.get('/stats', auth, async (req, res) => {
+// ─────────────────────────────────────────────
+// STATS
+// ─────────────────────────────────────────────
+router.get('/stats', auth, allow('admin'), async (req, res) => {
   try {
-    console.log('GET /audit-logs/stats called');
-
     const { from, to } = req.query;
+
     const params = [req.user.clinicId];
-    let whereClause = 'clinic_id = $1';
+    let where = 'clinic_id = $1';
+    let i = 1;
 
     if (from) {
       params.push(from);
-      whereClause += ` AND created_at >= $${params.length}`;
+      where += ` AND created_at >= $${++i}`;
     }
+
     if (to) {
       params.push(to + ' 23:59:59');
-      whereClause += ` AND created_at <= $${params.length}`;
+      where += ` AND created_at <= $${++i}`;
     }
 
-    // Get counts by action
-    const actionStats = await pool.query(
-      `SELECT action, COUNT(*) as count 
-             FROM audit_logs 
-             WHERE ${whereClause} 
-             GROUP BY action`,
+    const actions = await pool.query(
+      `SELECT action, COUNT(*) 
+       FROM audit_logs 
+       WHERE ${where}
+       GROUP BY action`,
       params
     );
 
-    // Get counts by table
-    const tableStats = await pool.query(
-      `SELECT table_name, COUNT(*) as count 
-             FROM audit_logs 
-             WHERE ${whereClause} 
-             GROUP BY table_name`,
+    const tables = await pool.query(
+      `SELECT table_name, COUNT(*) 
+       FROM audit_logs 
+       WHERE ${where}
+       GROUP BY table_name`,
       params
     );
 
-    // Get counts by user
-    const userStats = await pool.query(
-      `SELECT al.user_id, u.full_name as user_name, COUNT(*) as count 
-             FROM audit_logs al 
-             LEFT JOIN users u ON al.user_id = u.id 
-             WHERE ${whereClause} 
-             GROUP BY al.user_id, u.full_name`,
+    const total = await pool.query(
+      `SELECT COUNT(*) FROM audit_logs WHERE ${where}`,
       params
     );
-
-    // Get total count
-    const totalResult = await pool.query(
-      `SELECT COUNT(*) as total FROM audit_logs WHERE ${whereClause}`,
-      params
-    );
-
-    // Get recent activity
-    const recentResult = await pool.query(
-      `SELECT al.*, u.full_name as user_name 
-             FROM audit_logs al 
-             LEFT JOIN users u ON al.user_id = u.id 
-             WHERE al.clinic_id = $1 
-             ORDER BY al.created_at DESC 
-             LIMIT 10`,
-      [req.user.clinicId]
-    );
-
-    const byAction = {};
-    actionStats.rows.forEach(row => {
-      byAction[row.action] = parseInt(row.count);
-    });
-
-    const byTable = {};
-    tableStats.rows.forEach(row => {
-      byTable[row.table_name] = parseInt(row.count);
-    });
-
-    const byUser = {};
-    userStats.rows.forEach(row => {
-      byUser[row.user_name || `User ${row.user_id}`] = parseInt(row.count);
-    });
-
-    // Transform recent activity
-    const recentActivity = recentResult.rows.map(row => ({
-      ...row,
-      old_values: row.old_values ? JSON.parse(row.old_values) : null,
-      new_values: row.new_values ? JSON.parse(row.new_values) : null
-    }));
 
     res.json({
-      total: parseInt(totalResult.rows[0].total),
-      by_action: byAction,
-      by_table: byTable,
-      by_user: byUser,
-      recent_activity: recentActivity
+      total: parseInt(total.rows[0].count),
+      by_action: Object.fromEntries(
+        actions.rows.map(r => [r.action, Number(r.count)])
+      ),
+      by_table: Object.fromEntries(
+        tables.rows.map(r => [r.table_name, Number(r.count)])
+      ),
     });
   } catch (err) {
-    console.error('Error in GET /audit-logs/stats:', err);
-    res.status(500).json({ error: 'Server error', details: err.message });
+    console.error('Audit stats error:', err.message);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
-/**
- * GET /audit-logs/record/:tableName/:recordId
- * Get audit trail for a specific record
- */
-router.get('/record/:tableName/:recordId', auth, async (req, res) => {
+// ─────────────────────────────────────────────
+// SINGLE ENTRY
+// ─────────────────────────────────────────────
+router.get('/:id', auth, allow('admin'), async (req, res) => {
   try {
-    console.log('GET /audit-logs/record called', req.params);
-
-    const { tableName, recordId } = req.params;
-
     const result = await pool.query(
-      `SELECT 
-                al.*, 
-                u.full_name AS user_name
-             FROM audit_logs al 
-             LEFT JOIN users u ON al.user_id = u.id 
-             WHERE al.clinic_id = $1 
-               AND al.table_name = $2 
-               AND al.record_id = $3 
-             ORDER BY al.created_at DESC`,
-      [req.user.clinicId, tableName, recordId]
-    );
-
-    // Transform data
-    const data = result.rows.map(row => ({
-      ...row,
-      old_values: row.old_values ? JSON.parse(row.old_values) : null,
-      new_values: row.new_values ? JSON.parse(row.new_values) : null
-    }));
-
-    res.json(data);
-  } catch (err) {
-    console.error('Error in GET /audit-logs/record:', err);
-    res.status(500).json({ error: 'Server error', details: err.message });
-  }
-});
-
-/**
- * GET /audit-logs/tables
- * Get unique tables that have audit logs
- */
-router.get('/tables', auth, async (req, res) => {
-  try {
-    console.log('GET /audit-logs/tables called');
-
-    const result = await pool.query(
-      `SELECT DISTINCT table_name 
-             FROM audit_logs 
-             WHERE clinic_id = $1 
-             ORDER BY table_name`,
-      [req.user.clinicId]
-    );
-
-    res.json(result.rows.map(row => row.table_name));
-  } catch (err) {
-    console.error('Error in GET /audit-logs/tables:', err);
-    res.status(500).json({ error: 'Server error', details: err.message });
-  }
-});
-
-/**
- * GET /audit-logs/actions
- * Get unique actions that appear in audit logs
- */
-router.get('/actions', auth, async (req, res) => {
-  try {
-    console.log('GET /audit-logs/actions called');
-
-    const result = await pool.query(
-      `SELECT DISTINCT action 
-             FROM audit_logs 
-             WHERE clinic_id = $1 
-             ORDER BY action`,
-      [req.user.clinicId]
-    );
-
-    res.json(result.rows.map(row => row.action));
-  } catch (err) {
-    console.error('Error in GET /audit-logs/actions:', err);
-    res.status(500).json({ error: 'Server error', details: err.message });
-  }
-});
-
-/**
- * POST /audit-logs/export
- * Export audit logs as CSV
- */
-router.post('/export', auth, async (req, res) => {
-  try {
-    console.log('POST /audit-logs/export called with body:', req.body);
-
-    const {
-      tableName,
-      action,
-      userId,
-      from,
-      to,
-      search
-    } = req.body;
-
-    const params = [req.user.clinicId];
-    let whereClause = 'al.clinic_id = $1';
-    let paramIndex = 1;
-
-    // Apply filters
-    if (tableName) {
-      paramIndex++;
-      params.push(tableName);
-      whereClause += ` AND al.table_name = $${paramIndex}`;
-    }
-
-    if (action) {
-      paramIndex++;
-      params.push(action);
-      whereClause += ` AND al.action = $${paramIndex}`;
-    }
-
-    if (userId) {
-      paramIndex++;
-      params.push(userId);
-      whereClause += ` AND al.user_id = $${paramIndex}`;
-    }
-
-    if (from) {
-      paramIndex++;
-      params.push(from);
-      whereClause += ` AND al.created_at >= $${paramIndex}`;
-    }
-
-    if (to) {
-      paramIndex++;
-      params.push(to + ' 23:59:59');
-      whereClause += ` AND al.created_at <= $${paramIndex}`;
-    }
-
-    if (search) {
-      paramIndex++;
-      params.push(`%${search}%`);
-      whereClause += ` AND (
-                al.table_name ILIKE $${paramIndex} OR 
-                al.action ILIKE $${paramIndex} OR 
-                u.full_name ILIKE $${paramIndex}
-            )`;
-    }
-
-    // Get data for export
-    const result = await pool.query(
-      `SELECT 
-                al.created_at,
-                al.action,
-                al.table_name,
-                al.record_id,
-                al.ip_address,
-                al.user_agent,
-                u.full_name AS user_name
-             FROM audit_logs al 
-             LEFT JOIN users u ON al.user_id = u.id 
-             WHERE ${whereClause} 
-             ORDER BY al.created_at DESC`,
-      params
-    );
-
-    // Convert to CSV
-    const csv = convertToCSV(result.rows);
-
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename=audit-logs-${new Date().toISOString().split('T')[0]}.csv`);
-    res.send(csv);
-  } catch (err) {
-    console.error('Error in POST /audit-logs/export:', err);
-    res.status(500).json({ error: 'Server error', details: err.message });
-  }
-});
-
-/**
- * GET /audit-logs/:id
- * Get a single audit entry by ID
- */
-router.get('/:id', auth, async (req, res) => {
-  try {
-    console.log('GET /audit-logs/:id called', req.params.id);
-
-    const result = await pool.query(
-      `SELECT 
-                al.*, 
-                u.full_name AS user_name
-             FROM audit_logs al 
-             LEFT JOIN users u ON al.user_id = u.id 
-             WHERE al.id = $1 AND al.clinic_id = $2`,
+      `SELECT al.*, u.full_name AS user_name
+       FROM audit_logs al
+       LEFT JOIN users u ON al.user_id = u.id
+       WHERE al.id = $1 AND al.clinic_id = $2`,
       [req.params.id, req.user.clinicId]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Audit entry not found' });
+    if (!result.rows.length) {
+      return res.status(404).json({ error: 'Not found' });
     }
 
     const row = result.rows[0];
-    const data = {
+
+    res.json({
       ...row,
-      old_values: row.old_values ? JSON.parse(row.old_values) : null,
-      new_values: row.new_values ? JSON.parse(row.new_values) : null
-    };
-
-    res.json(data);
+      old_values: safeParse(row.old_values),
+      new_values: safeParse(row.new_values),
+    });
   } catch (err) {
-    console.error('Error in GET /audit-logs/:id:', err);
-    res.status(500).json({ error: 'Server error', details: err.message });
+    console.error('Audit single error:', err.message);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
-/**
- * DELETE /audit-logs/:id
- * Delete a single audit entry (admin only)
- */
-router.delete('/:id', auth, async (req, res) => {
+// ─────────────────────────────────────────────
+// EXPORT CSV
+// ─────────────────────────────────────────────
+router.post('/export', auth, allow('admin'), async (req, res) => {
   try {
-    console.log('DELETE /audit-logs/:id called', req.params.id);
-
-    // Check if user is admin
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
-
     const result = await pool.query(
-      'DELETE FROM audit_logs WHERE id = $1 AND clinic_id = $2 RETURNING id',
-      [req.params.id, req.user.clinicId]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Audit entry not found' });
-    }
-
-    res.json({ success: true, message: 'Audit entry deleted' });
-  } catch (err) {
-    console.error('Error in DELETE /audit-logs/:id:', err);
-    res.status(500).json({ error: 'Server error', details: err.message });
-  }
-});
-
-/**
- * DELETE /audit-logs
- * Clear all audit logs (admin only)
- */
-router.delete('/', auth, async (req, res) => {
-  try {
-    console.log('DELETE /audit-logs called');
-
-    // Check if user is admin
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
-
-    const result = await pool.query(
-      'DELETE FROM audit_logs WHERE clinic_id = $1 RETURNING id',
+      `SELECT 
+        al.created_at,
+        al.action,
+        al.table_name,
+        al.record_id,
+        al.ip_address,
+        u.full_name AS user_name
+       FROM audit_logs al
+       LEFT JOIN users u ON al.user_id = u.id
+       WHERE al.clinic_id = $1
+       ORDER BY al.created_at DESC
+       LIMIT 5000`,
       [req.user.clinicId]
     );
 
-    res.json({
-      success: true,
-      message: `Cleared ${result.rowCount} audit entries`,
-      count: result.rowCount
-    });
+    const csv = convertToCSV(result.rows);
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=audit-${Date.now()}.csv`
+    );
+
+    res.send(csv);
   } catch (err) {
-    console.error('Error in DELETE /audit-logs:', err);
-    res.status(500).json({ error: 'Server error', details: err.message });
+    console.error('Audit export error:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ─────────────────────────────────────────────
+// DELETE SINGLE (ADMIN ONLY)
+// ─────────────────────────────────────────────
+router.delete('/:id', auth, allow('admin'), async (req, res) => {
+  try {
+    const result = await pool.query(
+      `DELETE FROM audit_logs
+       WHERE id = $1 AND clinic_id = $2
+       RETURNING id`,
+      [req.params.id, req.user.clinicId]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Audit delete error:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+// ─────────────────────────────────────────────
+// RECENT ACTIVITY (for dashboard)
+// ─────────────────────────────────────────────
+router.get('/recent', auth, async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 20;
+    const activities = await getRecentActivity(req.user.clinicId, limit);
+    res.json({ activities });
+  } catch (err) {
+    console.error('Recent activity error:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ─────────────────────────────────────────────
+// USER ACTIVITY SUMMARY
+// ─────────────────────────────────────────────
+router.get('/user/:userId/activity', auth, allow('admin'), async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const days = parseInt(req.query.days) || 30;
+
+    const summary = await getUserActivitySummary(userId, req.user.clinicId, days);
+    res.json({ userId, days, summary });
+  } catch (err) {
+    console.error('User activity error:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ─────────────────────────────────────────────
+// SECURITY EVENTS (admin only)
+// ─────────────────────────────────────────────
+router.get('/security', auth, allow('admin'), async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 100;
+    const offset = parseInt(req.query.offset) || 0;
+
+    const { rows } = await pool.query(
+      `SELECT 
+         se.*,
+         u.full_name as user_name
+       FROM security_events se
+       LEFT JOIN users u ON se.user_id = u.id
+       WHERE se.clinic_id = $1 OR se.clinic_id IS NULL
+       ORDER BY se.created_at DESC
+       LIMIT $2 OFFSET $3`,
+      [req.user.clinicId, limit, offset]
+    );
+
+    res.json({ events: rows });
+  } catch (err) {
+    // Table might not exist yet
+    console.error('Security events error:', err.message);
+    res.json({ events: [], message: 'Security events table not yet created' });
   }
 });
 

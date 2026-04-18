@@ -7,7 +7,6 @@ import {
 } from "lucide-react";
 import {
     apiCreateAppointment,
-    apiUpdateAppointmentStatus,
     apiDeleteAppointment,
 } from "@/api/appointments";
 import { apiGetPatients } from "@/api/patients";
@@ -595,7 +594,7 @@ export default function CalendarView({ appointments = [], isLoading: appointment
     });
 
     const updateMut = useMutation({
-        mutationFn: ({ id, status }: { id: number; status: string }) => apiUpdateAppointmentStatus(id, status),
+        
         onSuccess: () => {
             toast.success("Appointment updated");
             qc.invalidateQueries({ queryKey: ["appointments"] });

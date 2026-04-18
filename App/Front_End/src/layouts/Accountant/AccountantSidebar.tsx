@@ -26,9 +26,9 @@ const ACCOUNTANT_NAV_SECTIONS = [
     label: "Billing",
     items: [
       { path: "/accountant/invoices/create", label: "Create Invoice", icon: FilePlus },
-      { path: "/accountant/invoices/list", label: "All Invoices", icon: FileText },
+      // { path: "/accountant/invoices/list", label: "All Invoices", icon: FileText },
       { path: "/accountant/invoices/unpaid", label: "Unpaid Invoices", icon: AlertCircle },
-      { path: "/accountant/payments", label: "Record Payment", icon: CreditCard },
+      // { path: "/accountant/payments", label: "Record Payment", icon: CreditCard },
       { path: "/accountant/refunds", label: "Refunds", icon: Undo2 },
     ],
   },
@@ -212,12 +212,12 @@ export default function AccountantSidebar() {
           <p style={{
             textAlign: "center",
             fontSize: 12,
-            color: "rgba(255,255,255,0.18)",
+            color: "#FFFFFF",
             marginBottom: 6,
             letterSpacing: "0.03em",
           }}>
             Powered by{" "}
-            <span style={{ color: "#FEFEFE", fontWeight: 700 }}>eALIF Team</span>
+            <span style={{ color: "#FFFFFF", fontWeight: 700 }}>eALIF Team</span>
           </p>
         )}
         <button
@@ -230,7 +230,7 @@ export default function AccountantSidebar() {
             padding: "6px 8px", borderRadius: 7,
             background: "none", border: "none",
             cursor: "pointer",
-            color: "rgba(255,255,255,0.25)",
+            color: "#FFFFFF",
             fontSize: 11.5, fontFamily: "inherit",
             transition: "all 0.12s",
           }}

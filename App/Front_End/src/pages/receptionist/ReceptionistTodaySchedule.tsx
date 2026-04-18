@@ -9,8 +9,7 @@ import {
   ChevronLeft, TrendingUp,
 } from "lucide-react";
 import {
-  apiGetAppointments, apiCreateAppointment,
-  apiUpdateAppointmentStatus, apiDeleteAppointment,
+  apiGetAppointments, apiCreateAppointment, apiDeleteAppointment,
 } from "@/api/appointments";
 import { apiGetPatients } from "@/api/patients";
 import { useAuthStore } from "@/app/store";
@@ -373,8 +372,7 @@ export default function ReceptionistTodaySchedule() {
     });
 
     const updateMut = useMutation({
-        mutationFn: ({ id, status }: { id: number; status: string }) =>
-            apiUpdateAppointmentStatus(id, status),
+        
         onSuccess: () => {
             toast.success("Appointment updated");
             qc.invalidateQueries({ queryKey: ["appointments"] });

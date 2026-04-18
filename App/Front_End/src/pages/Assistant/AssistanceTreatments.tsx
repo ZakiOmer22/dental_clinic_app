@@ -5,7 +5,7 @@ import {
   Stethoscope, CheckCircle2, Clock, DollarSign,
   ChevronRight, ClipboardList, Filter,
 } from "lucide-react";
-import { apiGetTreatments, apiCreateTreatment, apiGetProceduresCatalog } from "@/api/treatments";
+import { apiGetTreatments, apiCreateTreatment } from "@/api/treatments";
 import { apiGetPatients } from "@/api/patients";
 import { useAuthStore } from "@/app/store";
 import { formatCurrency } from "@/utils";
@@ -282,7 +282,7 @@ export default function AssistantTreatmentsPage() {
 
   const {data,isLoading}=useQuery({queryKey:["treatments"],queryFn:()=>apiGetTreatments()});
   const {data:patientsRes}=useQuery({queryKey:["patients","select"],queryFn:()=>apiGetPatients({limit:500})});
-  const {data:catalogRaw}=useQuery({queryKey:["procedures-catalog"],queryFn:apiGetProceduresCatalog});
+  const {data:catalogRaw}=useQuery({queryKey:["procedures-catalog"],queryFn:()=>fetch("/data/procedures_catalog.json").then(res=>res.json())});
 
   const treatments:any[]=data?.data??[];
   const patients:any[]=patientsRes?.data??[];

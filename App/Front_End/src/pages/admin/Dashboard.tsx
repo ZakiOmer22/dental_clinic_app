@@ -7,11 +7,11 @@ import {
   Wallet, Bell, ArrowUpRight, MoreHorizontal,
   CheckCircle2, XCircle, Timer,
 } from "lucide-react";
-import { apiGetTodayAppointments } from "@/api/appointments";
 import { apiGetPatients } from "@/api/patients";
 import { apiGetInvoices } from "@/api/billing";
 import { apiGetLowStock } from "@/api/inventory";
 import { formatCurrency } from "@/utils";
+import { apiGetAppointments } from "@/api";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
@@ -338,7 +338,7 @@ export default function DashboardPage() {
 
   const { data: todayAppts, isLoading: loadingAppts } = useQuery({
     queryKey: ["appointments", "today"],
-    queryFn: apiGetTodayAppointments,
+    queryFn: apiGetAppointments,
   });
   const { data: patientsRes } = useQuery({
     queryKey: ["patients", "count"],

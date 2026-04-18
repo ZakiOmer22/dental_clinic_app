@@ -1,3 +1,7 @@
+// ─────────────────────────────────────────────────────────────
+// src/api/reports.ts (CLEAN + SECURE)
+// ─────────────────────────────────────────────────────────────
+
 import client from "./client";
 
 export const apiGetRevenueReport = async (params?: any) => {
@@ -15,17 +19,17 @@ export const apiGetRecallsDue = async () => {
   return res.data;
 };
 
-export const apiGetExpenses = async (params?: any) => {
+export const apiGetExpensesReport = async (params?: any) => {
   const res = await client.get("/reports/expenses", { params });
   return res.data;
 };
 
-export const apiGetReports = async (reportType: string, params?: any) => {
-  const res = await client.get(`/reports/${reportType}`, { params });
+export const apiGetRevenueBreakdown = async (params?: any) => {
+  const res = await client.get("/reports/revenue-breakdown", { params });
   return res.data;
 };
 
-export const apiGetRevenue = async (params?: any) => {
-  const res = await client.get("/reports/revenue-breakdown", { params });
+export const apiGetDashboardStats = async () => {
+  const res = await client.get("/reports/dashboard");
   return res.data;
 };

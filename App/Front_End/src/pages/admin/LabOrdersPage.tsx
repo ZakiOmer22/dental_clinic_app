@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════════════════════════════════════════
-// LAB ORDERS PAGE
+// LAB ORDERS PAGE with PDF Printing
 
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Search, X, ChevronDown, CheckCircle2, Clock, FlaskConical, FileText, Users, Send, AlertTriangle, Calendar, DollarSign } from "lucide-react";
+import { Plus, Trash2, Search, X, ChevronDown, CheckCircle2, Clock, FlaskConical, FileText, Users, Send, AlertTriangle, Calendar, DollarSign, Printer, Download, ExternalLink } from "lucide-react";
 import { apiGetLabOrders, apiCreateLabOrder, apiUpdateLabOrder, apiDeleteLabOrder } from "@/api/labOrders";
 import { apiGetPatients } from "@/api/patients";
 import { useAuthStore } from "@/app/store";
@@ -55,7 +55,7 @@ const IS: React.CSSProperties = {
   boxSizing: "border-box"
 };
 
-const GS = `@keyframes spin{to{transform:rotate(360deg)}}@keyframes modalIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}.t-row:hover{background:${C.bgMuted}!important;cursor:pointer}.inp:focus{border-color:${C.teal}!important;box-shadow:0 0 0 3px rgba(13,158,117,.1)!important}.del-btn:hover{background:${C.redBg}!important;color:${C.red}!important;border-color:${C.redBorder}!important}.act-btn:hover{background:${C.tealBg}!important;color:${C.tealText}!important;border-color:${C.tealBorder}!important}.detail-row{animation:fadeUp .2s ease both}`;
+const GS = `@keyframes spin{to{transform:rotate(360deg)}}@keyframes modalIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}.t-row:hover{background:${C.bgMuted}!important;cursor:pointer}.inp:focus{border-color:${C.teal}!important;box-shadow:0 0 0 3px rgba(13,158,117,.1)!important}.del-btn:hover{background:${C.redBg}!important;color:${C.red}!important;border-color:${C.redBorder}!important}.act-btn:hover{background:${C.tealBg}!important;color:${C.tealText}!important;border-color:${C.tealBorder}!important}.detail-row{animation:fadeUp .2s ease both}@media print{.no-print{display:none!important}.print-container{padding:0!important;margin:0!important}.print-container table{page-break-inside:avoid}.print-container tr{page-break-inside:avoid}}`;
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const LAB_TYPES = [
@@ -94,6 +94,125 @@ const E_LAB = {
   instructions: "",
   status: "pending"
 };
+
+// ── PDF Print Component ──────────────────────────────────────────────────────
+// ── PDF Print Component ──────────────────────────────────────────────────────
+function LabOrderPrintView({ order, clinic, patient }: { order: any; clinic: any; patient: any }) {
+  const status = LAB_STATUS[order.status as keyof typeof LAB_STATUS] || LAB_STATUS.pending;
+  const isDelayed = order.expected_date && new Date(order.expected_date) < new Date() && order.status !== "received";
+
+  return (
+    <div id="print-content" className="print-container" style={{ padding: "30px", fontFamily: "'Segoe UI', Arial, sans-serif", maxWidth: "900px", margin: "0 auto" }}>
+      {/* Header with Logo */}
+      <div style={{ textAlign: "center", marginBottom: "30px", borderBottom: `2px solid ${C.teal}`, paddingBottom: "20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
+          <div style={{ width: "80px" }}></div>
+          <div>
+            <h1 style={{ fontSize: "28px", margin: "0", color: C.teal, letterSpacing: "1px" }}>{clinic?.name || "Dental Clinic"}</h1>
+            <p style={{ color: C.muted, margin: "5px 0 0", fontSize: "12px" }}>Advanced Dental Care Center</p>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <p style={{ fontSize: "10px", color: C.faint, margin: 0 }}>Powered by Ealif Suite</p>
+            <p style={{ fontSize: "10px", color: C.faint, margin: 0 }}>Dental Clinic Portal</p>
+          </div>
+        </div>
+        <p style={{ fontSize: "14px", color: C.muted, marginTop: "5px" }}>Laboratory Order Form</p>
+        <p style={{ fontSize: "11px", color: C.faint, marginTop: "2px" }}>Generated on {new Date().toLocaleString()}</p>
+      </div>
+
+      {/* Order Header Cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "15px", marginBottom: "25px" }}>
+        <div style={{ background: C.bgMuted, padding: "12px", borderRadius: "8px", textAlign: "center" }}>
+          <p style={{ fontSize: "10px", color: C.muted, marginBottom: "4px" }}>LAB ORDER #</p>
+          <p style={{ fontSize: "18px", fontWeight: "700", color: C.teal }}>{order.id}</p>
+        </div>
+        <div style={{ background: status.bg, padding: "12px", borderRadius: "8px", textAlign: "center" }}>
+          <p style={{ fontSize: "10px", color: C.muted, marginBottom: "4px" }}>STATUS</p>
+          <p style={{ fontSize: "14px", fontWeight: "700", color: status.text }}>{status.label}</p>
+        </div>
+        <div style={{ background: C.bgMuted, padding: "12px", borderRadius: "8px", textAlign: "center" }}>
+          <p style={{ fontSize: "10px", color: C.muted, marginBottom: "4px" }}>DATE SENT</p>
+          <p style={{ fontSize: "14px", fontWeight: "600" }}>{order.sent_date ? new Date(order.sent_date).toLocaleDateString() : "—"}</p>
+        </div>
+        <div style={{ background: C.bgMuted, padding: "12px", borderRadius: "8px", textAlign: "center" }}>
+          <p style={{ fontSize: "10px", color: C.muted, marginBottom: "4px" }}>EXPECTED RETURN</p>
+          <p style={{ fontSize: "14px", fontWeight: "600", color: isDelayed ? C.redText : C.text }}>{order.expected_date ? new Date(order.expected_date).toLocaleDateString() : "—"}</p>
+        </div>
+      </div>
+
+      {/* Patient Information Section */}
+      <div style={{ marginBottom: "25px" }}>
+        <h2 style={{ fontSize: "16px", fontWeight: "700", color: C.teal, marginBottom: "12px", borderLeft: `4px solid ${C.teal}`, paddingLeft: "10px" }}>
+          PATIENT INFORMATION
+        </h2>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px", padding: "15px", border: `1px solid ${C.border}`, borderRadius: "10px", background: C.bgMuted }}>
+          <div><strong>Full Name:</strong> {order.patient_name}</div>
+          <div><strong>Patient ID:</strong> {patient?.patient_number || "—"}</div>
+          <div><strong>Phone:</strong> {patient?.phone || "—"}</div>
+          <div><strong>Email:</strong> {patient?.email || "—"}</div>
+          <div><strong>Date of Birth:</strong> {patient?.date_of_birth ? new Date(patient.date_of_birth).toLocaleDateString() : "—"}</div>
+          <div><strong>Gender:</strong> {patient?.gender || "—"}</div>
+          <div><strong>Doctor:</strong> {order.doctor_name || "—"}</div>
+          <div><strong>Specialization:</strong> {order.specialization || "General Dentistry"}</div>
+        </div>
+      </div>
+
+      {/* Order Details Section */}
+      <div style={{ marginBottom: "25px" }}>
+        <h2 style={{ fontSize: "16px", fontWeight: "700", color: C.teal, marginBottom: "12px", borderLeft: `4px solid ${C.teal}`, paddingLeft: "10px" }}>
+          ORDER DETAILS
+        </h2>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px", padding: "15px", border: `1px solid ${C.border}`, borderRadius: "10px" }}>
+          <div><strong>Order Type:</strong> {order.order_type}</div>
+          <div><strong>Shade:</strong> {order.shade || "Not specified"}</div>
+          <div><strong>Lab Name:</strong> {order.lab_name || "—"}</div>
+          <div><strong>Cost:</strong> <span style={{ color: C.teal, fontWeight: "700" }}>{order.cost ? `$${parseFloat(order.cost).toFixed(2)}` : "—"}</span></div>
+          <div><strong>Date Sent:</strong> {order.sent_date ? new Date(order.sent_date).toLocaleDateString() : "—"}</div>
+          <div><strong>Expected Return:</strong> {order.expected_date ? new Date(order.expected_date).toLocaleDateString() : "—"}</div>
+        </div>
+      </div>
+
+      {/* Instructions Section */}
+      {order.instructions && (
+        <div style={{ marginBottom: "25px" }}>
+          <h2 style={{ fontSize: "16px", fontWeight: "700", color: C.teal, marginBottom: "12px", borderLeft: `4px solid ${C.teal}`, paddingLeft: "10px" }}>
+            SPECIAL INSTRUCTIONS
+          </h2>
+          <div style={{ padding: "15px", border: `1px solid ${C.border}`, borderRadius: "10px", background: C.bgMuted }}>
+            <p style={{ fontSize: "13px", lineHeight: "1.6", margin: 0 }}>{order.instructions}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Footer with Terms */}
+      <div style={{ marginTop: "40px", paddingTop: "20px", borderTop: `1px solid ${C.border}` }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+          <div>
+            <p style={{ fontSize: "11px", color: C.muted, margin: 0 }}>Authorized Signature</p>
+            <div style={{ width: "200px", height: "40px", borderBottom: `1px solid ${C.border}`, marginTop: "5px" }}></div>
+          </div>
+          <div>
+            <p style={{ fontSize: "11px", color: C.muted, margin: 0 }}>Doctor Signature</p>
+            <div style={{ width: "200px", height: "40px", borderBottom: `1px solid ${C.border}`, marginTop: "5px" }}></div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <p style={{ fontSize: "11px", color: C.muted, margin: 0 }}>Date</p>
+            <div style={{ width: "150px", height: "40px", borderBottom: `1px solid ${C.border}`, marginTop: "5px" }}></div>
+          </div>
+        </div>
+        <div style={{ textAlign: "center", marginTop: "20px" }}>
+          <p style={{ fontSize: "10px", color: C.faint, margin: 0 }}>This is a computer-generated document. No signature required for electronic processing.</p>
+          <p style={{ fontSize: "9px", color: C.faint, marginTop: "5px" }}>
+            {clinic?.address || "Healthcare Facility"} | {clinic?.phone || "+252 XXX XXX XXX"} | {clinic?.email || "info@dentalclinic.com"}
+          </p>
+          <p style={{ fontSize: "9px", color: C.faint, marginTop: "5px" }}>
+            © {new Date().getFullYear()} {clinic?.name || "Dental Clinic"} - All Rights Reserved | Powered by Ealif Suite
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ── Shared atoms ──────────────────────────────────────────────────────────────
 function Avi({ name, size = 28 }: { name: string; size?: number }) {
@@ -500,8 +619,138 @@ function SearchB({ value, onChange, placeholder, width = 280 }: { value: string;
   );
 }
 
-// Detail View Component
-function LabOrderDetail({ order, onClose }: { order: any; onClose: () => void }) {
+// Print Modal Component
+function PrintModal({ open, onClose, order }: { open: boolean; onClose: () => void; order: any }) {
+  const user = useAuthStore(s => s.user);
+  const clinic = user?.clinic || { name: "Dental Clinic" };
+
+  const handlePrint = () => {
+    window.open(`/reports/view?type=lab-order&order_id=${order.id}`, '_blank');
+  };
+
+  const openInNewTab = () => {
+    const printContent = document.getElementById('print-content');
+    if (!printContent) return;
+
+    const newWindow = window.open('', '_blank');
+    if (!newWindow) {
+      toast.error('Popup blocked. Please allow popups for this site.');
+      return;
+    }
+
+    const styles = document.querySelector('style')?.innerHTML || '';
+    const computedStyles = window.getComputedStyle(printContent);
+
+    newWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Lab_Order_${order.id}</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+              font-family: Arial, sans-serif;
+              padding: 20px;
+              background: white;
+            }
+            .print-container {
+              max-width: 800px;
+              margin: 0 auto;
+            }
+            @media print {
+              body { padding: 0; }
+              .no-print { display: none; }
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 20px;
+            }
+            th, td {
+              padding: 10px;
+              border: 1px solid #e5eae8;
+              text-align: left;
+            }
+            th {
+              background: #f7f9f8;
+              font-weight: 600;
+            }
+            h1, h2 {
+              margin-bottom: 16px;
+            }
+            .text-center { text-align: center; }
+            .text-right { text-align: right; }
+          </style>
+        </head>
+        <body>
+          <div class="print-container">
+            ${printContent.outerHTML}
+          </div>
+          <script>
+            window.onload = () => {
+              console.log('Lab order loaded');
+            };
+          <\/script>
+        </body>
+      </html>
+    `);
+    newWindow.document.close();
+  };
+
+  if (!open || !order) return null;
+
+  return (
+    <Modal open={open} onClose={onClose} title="Print Lab Order" size="lg">
+      <LabOrderPrintView order={order} clinic={clinic} />
+      <div className="no-print" style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 20, paddingTop: 16, borderTop: `1px solid ${C.border}` }}>
+        <GBtn onClick={onClose}>Cancel</GBtn>
+        <button
+          onClick={openInNewTab}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "9px 18px",
+            borderRadius: 9,
+            border: `1px solid ${C.border}`,
+            background: C.bg,
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: "pointer",
+            fontFamily: "inherit",
+            color: C.text
+          }}
+        >
+          <ExternalLink size={14} />
+          Open in New Tab
+        </button>
+        <button
+          onClick={handlePrint}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "9px 18px",
+            borderRadius: 9,
+            background: C.teal,
+            border: "none",
+            color: "white",
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: "pointer",
+            fontFamily: "inherit"
+          }}
+        >
+          <Printer size={14} />
+          Print / Save PDF
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+// Detail View Component with Print Button
+function LabOrderDetail({ order, onClose, onPrint }: { order: any; onClose: () => void; onPrint: () => void }) {
   const status = LAB_STATUS[order.status as keyof typeof LAB_STATUS] || LAB_STATUS.pending;
   const StatusIcon = status.icon;
 
@@ -581,10 +830,10 @@ function LabOrderDetail({ order, onClose }: { order: any; onClose: () => void })
 
       <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
         <button
-          onClick={() => window.print()}
-          style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px", borderRadius: 9, border: `1px solid ${C.border}`, background: C.bg, fontSize: 13, fontWeight: 600, color: C.text, cursor: "pointer", fontFamily: "inherit" }}
+          onClick={onPrint}
+          style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px", borderRadius: 9, border: `1px solid ${C.border}`, background: C.teal, color: "white", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
         >
-          <FileText size={14} />
+          <Printer size={14} />
           Print Order
         </button>
         <GBtn onClick={onClose}>Close</GBtn>
@@ -601,6 +850,7 @@ export function LabOrdersPage() {
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState(E_LAB);
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
+  const [printOrder, setPrintOrder] = useState<any>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["lab-orders"],
@@ -671,9 +921,12 @@ export function LabOrdersPage() {
     setForm(p => ({ ...p, [k]: e.target.value }));
 
   const handleRowClick = (row: any, e: React.MouseEvent) => {
-    // Don't trigger if clicking on delete button or status select
     if ((e.target as HTMLElement).closest('.delete-btn') || (e.target as HTMLElement).closest('select')) return;
     setExpandedRow(expandedRow === row.id ? null : row.id);
+  };
+
+  const handlePrint = (order: any) => {
+    setPrintOrder(order);
   };
 
   return (
@@ -856,7 +1109,7 @@ export function LabOrdersPage() {
                       borderBottom: i < filtered.length - 1 ? `1px solid ${C.border}` : "none"
                     }}
                   >
-                    <LabOrderDetail order={row} onClose={() => setExpandedRow(null)} />
+                    <LabOrderDetail order={row} onClose={() => setExpandedRow(null)} onPrint={() => handlePrint(row)} />
                   </div>
                 )}
               </div>
@@ -917,6 +1170,9 @@ export function LabOrdersPage() {
           </div>
         </form>
       </Modal>
+
+      {/* Print Modal */}
+      <PrintModal open={!!printOrder} onClose={() => setPrintOrder(null)} order={printOrder} />
     </>
   );
 }

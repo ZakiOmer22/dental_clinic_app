@@ -1,49 +1,77 @@
 import client from "./client";
 
-// ─── Response types ───────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// TYPES (HARDENED)
+// ─────────────────────────────────────────────
+
 export interface AuthUser {
+  username: string;
   id: number;
   fullName: string;
   email: string;
-  role: "admin" | "dentist" | "receptionist" | "assistant" | "accountant" | "nurse";
+  role: "super_admin" | "admin" | "dentist" | "receptionist" | "assistant" | "accountant" | "nurse";
   clinicId: number;
   avatarUrl: string | null;
 }
 
 export interface AuthResponse {
-  token: string;
   user: AuthUser;
+  token: string;
 }
 
-// ─── Register payload ─────────────────────────────────────────────────────────
-export interface RegisterPayload {
-  fullName: string;
-  email: string;
-  password: string;
-  role: AuthUser["role"];
-  clinicId: number;
-  phone?: string;
-}
+// ─────────────────────────────────────────────
+// LOGIN
+// ─────────────────────────────────────────────
 
-// ─── API calls ────────────────────────────────────────────────────────────────
 export const apiLogin = async (
   email: string,
   password: string
 ): Promise<AuthResponse> => {
-  const res = await client.post<AuthResponse>("/auth/login", { email, password });
+  const res = await client.post("/auth/login", { email, password });
   return res.data;
 };
+
+// ─────────────────────────────────────────────
+// REGISTER (SECURED)
+// backend MUST assign role + clinicId
+// ─────────────────────────────────────────────
 
 export const apiRegister = async (
-  data: RegisterPayload
+  data: {
+    fullName: string;
+    email: string;
+    password: string;
+    phone?: string;
+  }
 ): Promise<AuthResponse> => {
-  const res = await client.post<AuthResponse>("/auth/register", data);
+  const res = await client.post("/auth/register", data);
   return res.data;
 };
 
+// ─────────────────────────────────────────────
+// LOGOUT
+// ─────────────────────────────────────────────
+
 export const apiLogout = async (): Promise<void> => {
-  await client.post("/auth/logout").catch(() => {
-    // server-side session cleanup — safe to ignore if it fails,
-    // the client clears the token regardless (handled in authStore)
+  await client.post("/auth/logout").catch(() => {});
+};
+
+// ─────────────────────────────────────────────
+// PASSWORD RESET FLOW
+// ─────────────────────────────────────────────
+
+export const apiForgotPassword = async (email: string) => {
+  const res = await client.post("/auth/forgot-password", { email });
+  return res.data;
+};
+
+export const apiResetPassword = async (
+  token: string,
+  newPassword: string
+) => {
+  const res = await client.post("/auth/reset-password", {
+    token,
+    newPassword,
   });
+  return res.data;
 };

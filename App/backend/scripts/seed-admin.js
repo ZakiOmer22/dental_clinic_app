@@ -50,3 +50,17 @@ async function seedAdmin() {
 }
 
 seedAdmin();
+
+// const bcrypt = require('bcryptjs');
+
+// async function hashPassword() {
+//   const password = '12345678';
+//   const hash = await bcrypt.hash(password, 12);
+
+//   console.log('Plain password :', password);
+//   console.log('Bcrypt hash    :', hash);
+
+//   process.exit(0);
+// }
+
+// hashPassword();

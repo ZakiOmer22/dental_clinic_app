@@ -7,8 +7,7 @@ import {
   CalendarCheck, Timer, Ban, RotateCcw, X,
 } from "lucide-react";
 import {
-  apiGetAppointments, apiCreateAppointment,
-  apiUpdateAppointmentStatus, apiDeleteAppointment,
+  apiGetAppointments, apiCreateAppointment, apiDeleteAppointment,
 } from "@/api/appointments";
 import { apiGetPatients } from "@/api/patients";
 import { useAuthStore } from "@/app/store";
@@ -289,8 +288,7 @@ export default function AppointmentsPage() {
     onError:(e:any)=>toast.error(e?.response?.data?.error??"Failed"),
   });
   const statusMut=useMutation({
-    mutationFn:({id,status}:{id:number;status:string})=>apiUpdateAppointmentStatus(id,status),
-    onSuccess:()=>{toast.success("Updated");qc.invalidateQueries({queryKey:["appointments"]});},
+    mutationFn:({id,status}:{id:number;status:string})=>fetch(`/api/appointments/${id}/status`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({status})}).then(res=>res.json()),
   });
   const deleteMut=useMutation({
     mutationFn:apiDeleteAppointment,

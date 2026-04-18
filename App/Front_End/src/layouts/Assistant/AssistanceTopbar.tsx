@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { LogOut, Bell, Search, ChevronRight, X, Clock } from "lucide-react";
+import { LogOut, Bell, Search, ChevronRight, X, Clock, Calendar, AlertCircle, DollarSign, FileText, UserPlus, Activity, FlaskConical, ClipboardCheck } from "lucide-react";
 import { apiLogout } from "@/api/auth";
 import { useAuthStore } from "@/app/store";
 import {
@@ -24,6 +24,61 @@ interface Notification {
     actionUrl?: string;
     createdAt: string;
 }
+
+// Helper to get icon based on notification type
+const getNotificationIcon = (type: string) => {
+    switch (type) {
+        case 'appointment_reminder':
+        case 'appointment':
+            return Calendar;
+        case 'payment_due':
+        case 'payment':
+            return DollarSign;
+        case 'follow_up':
+        case 'recare':
+            return Activity;
+        case 'system':
+            return AlertCircle;
+        case 'lab':
+        case 'lab_order':
+            return FlaskConical;
+        case 'patient':
+            return UserPlus;
+        case 'treatment':
+        case 'procedure':
+            return ClipboardCheck;
+        case 'file':
+        case 'xray':
+            return FileText;
+        default:
+            return Bell;
+    }
+};
+
+// Helper to get color based on notification type
+const getNotificationColor = (type: string) => {
+    switch (type) {
+        case 'appointment_reminder':
+        case 'appointment':
+            return "#3b82f6";
+        case 'payment_due':
+        case 'payment':
+            return "#0d9e75";
+        case 'follow_up':
+        case 'recare':
+            return "#8b5cf6";
+        case 'system':
+            return "#f59e0b";
+        case 'lab':
+        case 'lab_order':
+            return "#ec4899";
+        case 'treatment':
+        case 'procedure':
+            return "#06b6d4";
+        default:
+            return "#64748b";
+    }
+};
 
 const getPageMeta = (pathname: string, role?: string) => {
     const baseMeta: Record<string, { title: string; description: string }> = {
@@ -88,8 +143,17 @@ export default function AssistantTopbar() {
     useEffect(() => {
         const fetchUnreadCount = async () => {
             try {
-                const { count } = await apiGetUnreadCount();
-                setUnreadCount(count);
+                const result = await apiGetUnreadCount();
+                // Handle different response structures
+                if (typeof result === 'number') {
+                    setUnreadCount(result);
+                } else if (result?.count !== undefined) {
+                    setUnreadCount(result.count);
+                } else if (result?.data?.count !== undefined) {
+                    setUnreadCount(result.data.count);
+                } else {
+                    setUnreadCount(0);
+                }
             } catch (error) {
                 console.error("Failed to fetch unread count:", error);
             }
@@ -97,7 +161,6 @@ export default function AssistantTopbar() {
 
         fetchUnreadCount();
         const interval = setInterval(fetchUnreadCount, 30000);
-
         return () => clearInterval(interval);
     }, []);
 
@@ -141,11 +204,35 @@ export default function AssistantTopbar() {
         setIsNotificationsLoading(true);
         try {
             const data = await apiGetNotifications();
-            setNotifications(data);
-            const unread = data.filter((n: Notification) => !n.read).length;
+            
+            // Handle different response structures
+            let notificationsArray: any[] = [];
+            if (Array.isArray(data)) {
+                notificationsArray = data;
+            } else if (data?.data && Array.isArray(data.data)) {
+                notificationsArray = data.data;
+            } else if (data?.notifications && Array.isArray(data.notifications)) {
+                notificationsArray = data.notifications;
+            }
+            
+            // Transform to expected format
+            const enrichedData: Notification[] = notificationsArray.map((n: any) => ({
+                id: n.id,
+                type: n.type || 'system',
+                title: n.title || 'Notification',
+                message: n.message || '',
+                read: n.is_read !== undefined ? n.is_read : (n.read || false),
+                color: n.color || getNotificationColor(n.type),
+                actionUrl: n.actionUrl || n.action_url || undefined,
+                createdAt: n.created_at || n.createdAt || new Date().toISOString(),
+                time: n.time || formatTime(n.created_at || n.createdAt || new Date().toISOString()),
+            }));
+            
+            setNotifications(enrichedData);
+            const unread = enrichedData.filter((n: Notification) => !n.read).length;
             setUnreadCount(unread);
         } catch (error) {
-            toast.error("Failed to load notifications");
+            console.error("Failed to load notifications:", error);
         } finally {
             setIsNotificationsLoading(false);
         }
@@ -240,7 +327,7 @@ export default function AssistantTopbar() {
         const diffDays = Math.floor(diffHours / 24);
 
         if (diffMins < 1) return 'Just now';
-        if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+        if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
         if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
         if (diffDays === 1) return 'Yesterday';
         return `${diffDays} days ago`;
@@ -356,7 +443,26 @@ export default function AssistantTopbar() {
                     >
                         <Bell size={16} strokeWidth={1.8} />
                         {unreadCount > 0 && (
-                            <span style={{ position: "absolute", top: 5, right: 5, width: 8, height: 8, borderRadius: "50%", background: "#ef4444", border: "2px solid #fff" }} />
+                            <span style={{
+                                position: "absolute",
+                                top: -4,
+                                right: -4,
+                                minWidth: 18,
+                                height: 18,
+                                padding: "0 5px",
+                                borderRadius: 999,
+                                background: "#ef4444",
+                                color: "white",
+                                fontSize: 10,
+                                fontWeight: 700,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                border: "2px solid #fff",
+                                lineHeight: 1,
+                            }}>
+                                {unreadCount > 99 ? '99+' : unreadCount}
+                            </span>
                         )}
                     </button>
 
@@ -382,7 +488,7 @@ export default function AssistantTopbar() {
                                 </div>
                                 {unreadCount > 0 && (
                                     <button onClick={handleMarkAllAsRead} style={{ background: "transparent", border: "none", fontSize: 12, color: "#0d9e75", cursor: "pointer", padding: "4px 8px", borderRadius: 6 }}>
-                                        Mark all as read
+                                        Mark all read
                                     </button>
                                 )}
                             </div>
@@ -394,48 +500,52 @@ export default function AssistantTopbar() {
                                         <p style={{ fontSize: 14 }}>Loading notifications...</p>
                                     </div>
                                 ) : notifications.length > 0 ? (
-                                    notifications.map((notification) => (
-                                        <div
-                                            key={notification.id}
-                                            onClick={() => handleNotificationClick(notification)}
-                                            style={{
-                                                padding: "16px 20px", borderBottom: "1px solid #f1f5f9",
-                                                background: notification.read ? "#fff" : "#f0fdf9", cursor: "pointer",
-                                                transition: "all 0.2s ease", position: "relative",
-                                            }}
-                                            onMouseEnter={(e) => { e.currentTarget.style.background = "#f8fafc"; }}
-                                            onMouseLeave={(e) => { e.currentTarget.style.background = notification.read ? "#fff" : "#f0fdf9"; }}
-                                        >
-                                            <div style={{ display: "flex", gap: 12 }}>
-                                                <div style={{ width: 36, height: 36, borderRadius: 10, background: `${notification.color || "#0d9e75"}10`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                                    <Bell size={18} color={notification.color || "#0d9e75"} />
-                                                </div>
-                                                <div style={{ flex: 1 }}>
-                                                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-                                                        <div>
-                                                            <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", marginBottom: 4 }}>{notification.title}</p>
-                                                            <p style={{ fontSize: 12, color: "#475569", lineHeight: 1.5, marginBottom: 6 }}>{notification.message}</p>
-                                                            <span style={{ fontSize: 11, color: "#94a3b8", display: "flex", alignItems: "center", gap: 4 }}>
-                                                                <Clock size={10} />
-                                                                {formatTime(notification.createdAt)}
-                                                            </span>
+                                    notifications.map((notification) => {
+                                        const Icon = getNotificationIcon(notification.type);
+                                        const color = notification.color || getNotificationColor(notification.type);
+                                        return (
+                                            <div
+                                                key={notification.id}
+                                                onClick={() => handleNotificationClick(notification)}
+                                                style={{
+                                                    padding: "16px 20px", borderBottom: "1px solid #f1f5f9",
+                                                    background: notification.read ? "#fff" : "#f0fdf9", cursor: "pointer",
+                                                    transition: "all 0.2s ease", position: "relative",
+                                                }}
+                                                onMouseEnter={(e) => { e.currentTarget.style.background = "#f8fafc"; }}
+                                                onMouseLeave={(e) => { e.currentTarget.style.background = notification.read ? "#fff" : "#f0fdf9"; }}
+                                            >
+                                                <div style={{ display: "flex", gap: 12 }}>
+                                                    <div style={{ width: 36, height: 36, borderRadius: 10, background: `${color}10`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                                        <Icon size={18} color={color} />
+                                                    </div>
+                                                    <div style={{ flex: 1 }}>
+                                                        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                                                            <div>
+                                                                <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", marginBottom: 4 }}>{notification.title}</p>
+                                                                <p style={{ fontSize: 12, color: "#475569", lineHeight: 1.5, marginBottom: 6 }}>{notification.message}</p>
+                                                                <span style={{ fontSize: 11, color: "#94a3b8", display: "flex", alignItems: "center", gap: 4 }}>
+                                                                    <Clock size={10} />
+                                                                    {formatTime(notification.createdAt)}
+                                                                </span>
+                                                            </div>
+                                                            <button
+                                                                onClick={(e) => handleDeleteNotification(notification.id, e)}
+                                                                style={{ background: "transparent", border: "none", padding: 4, cursor: "pointer", color: "#94a3b8", borderRadius: 4, display: "flex" }}
+                                                                onMouseEnter={(e) => { e.currentTarget.style.background = "#f1f5f9"; e.currentTarget.style.color = "#475569"; }}
+                                                                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#94a3b8"; }}
+                                                            >
+                                                                <X size={12} />
+                                                            </button>
                                                         </div>
-                                                        <button
-                                                            onClick={(e) => handleDeleteNotification(notification.id, e)}
-                                                            style={{ background: "transparent", border: "none", padding: 4, cursor: "pointer", color: "#94a3b8", borderRadius: 4, display: "flex" }}
-                                                            onMouseEnter={(e) => { e.currentTarget.style.background = "#f1f5f9"; e.currentTarget.style.color = "#475569"; }}
-                                                            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#94a3b8"; }}
-                                                        >
-                                                            <X size={12} />
-                                                        </button>
                                                     </div>
                                                 </div>
+                                                {!notification.read && (
+                                                    <span style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", width: 3, height: 30, background: color, borderRadius: "0 4px 4px 0" }} />
+                                                )}
                                             </div>
-                                            {!notification.read && (
-                                                <span style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", width: 3, height: 30, background: "#0d9e75", borderRadius: "0 4px 4px 0" }} />
-                                            )}
-                                        </div>
-                                    ))
+                                        );
+                                    })
                                 ) : (
                                     <div style={{ padding: "40px 20px", textAlign: "center", color: "#94a3b8" }}>
                                         <Bell size={32} style={{ marginBottom: 12, opacity: 0.5 }} />
@@ -445,11 +555,13 @@ export default function AssistantTopbar() {
                                 )}
                             </div>
 
-                            <div style={{ padding: "12px 20px", borderTop: "1px solid #e2e8f0", background: "#f8fafc", textAlign: "center" }}>
-                                <button onClick={handleViewAllNotifications} style={{ background: "transparent", border: "none", fontSize: 12, color: "#0d9e75", cursor: "pointer", fontWeight: 500 }}>
-                                    View all notifications
-                                </button>
-                            </div>
+                            {notifications.length > 0 && (
+                                <div style={{ padding: "12px 20px", borderTop: "1px solid #e2e8f0", background: "#f8fafc", textAlign: "center" }}>
+                                    <button onClick={handleViewAllNotifications} style={{ background: "transparent", border: "none", fontSize: 12, color: "#0d9e75", cursor: "pointer", fontWeight: 500 }}>
+                                        View all notifications
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
@@ -461,7 +573,7 @@ export default function AssistantTopbar() {
                         {initials}
                     </div>
                     <div>
-                        <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", lineHeight: 1.4, whiteSpace: "nowrap" }}>{user?.fullName}</p>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", lineHeight: 1.4, whiteSpace: "nowrap" }}>{user?.fullName || "Assistant"}</p>
                         <p style={{ fontSize: 11, color: "#64748b", textTransform: "capitalize", lineHeight: 1.4 }}>Dental Assistant</p>
                     </div>
                 </div>

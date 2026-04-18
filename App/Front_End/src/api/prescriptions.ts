@@ -1,7 +1,9 @@
 // ─────────────────────────────────────────────────────────────
-// src/api/prescriptions.ts
+// src/api/prescriptions.ts (CLEAN + SECURE)
 // ─────────────────────────────────────────────────────────────
+
 import client from "./client";
+
 export const apiGetPrescriptions = async (params?: any) => {
   const res = await client.get("/prescriptions", { params });
   return res.data;
