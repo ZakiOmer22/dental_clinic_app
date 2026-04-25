@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper: only authenticated users ──────────────────────────
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // ── Users collection ──────────────────────────────────────────
+    match /users/{userId} {
+      allow read:  if isAuth();
+      allow write: if isAuth() && request.auth.uid == userId;
+    }
+
+    // ── Patients ──────────────────────────────────────────────────
+    match /patients/{id} {
+      allow read, write: if isAuth();
+    }
+
+    // ── Appointments ──────────────────────────────────────────────
+    match /appointments/{id} {
+      allow read, write: if isAuth();
+    }
+
+    // ── Treatments ────────────────────────────────────────────────
+    match /treatments/{id} {
+      allow read, write: if isAuth();
+    }
+
+    // ── Billing ───────────────────────────────────────────────────
+    match /billing/{id} {
+      allow read, write: if isAuth();
+    }
+
+    // ── Files (X-rays, reports) ───────────────────────────────────
+    match /files/{id} {
+      allow read, write: if isAuth();
+    }
+  }
+}

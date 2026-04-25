@@ -1,0 +1,128 @@
+{
+  "timestamp": "2026-04-25T18:00:50.664Z",
+  "baseUrl": "http://localhost:3000",
+  "routeType": "V1",
+  "duration": "0.09s",
+  "results": {
+    "passed": 1,
+    "failed": 22,
+    "skipped": 1,
+    "successRate": "4.3%"
+  },
+  "details": [
+    {
+      "name": "GET /health - returns ok",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "POST /auth/login - success",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /auth/me - returns user profile",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "POST /auth/login - invalid credentials",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /api/v1/patients - list patients",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "POST /api/v1/patients - create patient",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /api/v1/patients/:id - get single patient",
+      "status": "PASSED"
+    },
+    {
+      "name": "GET /api/v1/appointments - list appointments",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /api/v1/treatments - list treatments",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /procedures - list procedures",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /api/v1/prescriptions - list prescriptions",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /billing/invoices - list invoices",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /inventory/items - list inventory",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /lab-orders - list lab orders",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /audit-logs - list audit logs",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /audit-logs/stats - audit statistics",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /staff - list staff",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /users - list users",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /rooms - list rooms",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /notifications - list notifications",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /notifications/unread-count - unread count",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "GET /patients - returns 401 without token",
+      "status": "FAILED",
+      "error": ""
+    },
+    {
+      "name": "POST /auth/logout - logout",
+      "status": "FAILED",
+      "error": ""
+    }
+  ]
+}
