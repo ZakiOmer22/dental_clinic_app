@@ -1,0 +1,109 @@
+{
+  "timestamp": "2026-04-25T18:06:13.548Z",
+  "baseUrl": "http://localhost:3000",
+  "routeType": "V1",
+  "duration": "19.34s",
+  "results": {
+    "passed": 23,
+    "failed": 1,
+    "successRate": "95.8%"
+  },
+  "details": [
+    {
+      "name": "GET /health",
+      "status": "PASSED"
+    },
+    {
+      "name": "POST /api/v1/auth/login",
+      "status": "PASSED"
+    },
+    {
+      "name": "GET /api/v1/auth/me",
+      "status": "PASSED"
+    },
+    {
+      "name": "POST /api/v1/auth/login - invalid",
+      "status": "FAILED"
+    },
+    {
+      "name": "GET /api/v1/patients",
+      "status": "PASSED"
+    },
+    {
+      "name": "POST /api/v1/patients",
+      "status": "PASSED"
+    },
+    {
+      "name": "GET /api/v1/patients/:id",
+      "status": "PASSED"
+    },
+    {
+      "name": "GET /api/v1/appointments",
+      "status": "PASSED"
+    },
+    {
+      "name": "GET /api/v1/treatments",
+      "status": "PASSED"
+    },
+    {
+      "name": "GET /api/v1/procedures",
+      "status": "PASSED"
+    },
+    {
+      "name": "GET /api/v1/prescriptions",
+      "status": "PASSED"
+    },
+    {
+      "name": "GET /api/v1/billing/invoices",
+      "status": "PASSED"
+    },
+    {
+      "name": "GET /api/v1/inventory/items",
+      "status": "PASSED"
+    },
+    {
+      "name": "GET /api/v1/inventory/alerts",
+      "status": "PASSED"
+    },
+    {
+      "name": "GET /api/v1/lab-orders",
+      "status": "PASSED"
+    },
+    {
+      "name": "GET /api/v1/logs",
+      "status": "PASSED"
+    },
+    {
+      "name": "GET /api/v1/staff",
+      "status": "PASSED"
+    },
+    {
+      "name": "GET /api/v1/users",
+      "status": "PASSED"
+    },
+    {
+      "name": "GET /api/v1/rooms",
+      "status": "PASSED"
+    },
+    {
+      "name": "GET /api/v1/notifications",
+      "status": "PASSED"
+    },
+    {
+      "name": "GET /api/v1/notifications/unread-count",
+      "status": "PASSED"
+    },
+    {
+      "name": "GET /api/v1/patients without token → 401",
+      "status": "PASSED"
+    },
+    {
+      "name": "DELETE /api/v1/patients/:id",
+      "status": "PASSED"
+    },
+    {
+      "name": "POST /api/v1/auth/logout",
+      "status": "PASSED"
+    }
+  ]
+}
