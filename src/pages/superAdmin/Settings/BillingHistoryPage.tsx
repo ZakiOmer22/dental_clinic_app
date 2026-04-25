@@ -1,6 +1,6 @@
-// ─── Invoices.tsx ──────────────────────────────────────────────────────────
-import { useState, useEffect, useMemo } from "react";
-import { Receipt, Send, Eye, Search, X, ChevronLeft, ChevronRight, AlertCircle, CheckCircle2, Clock } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Printer, Download, ArrowLeft, Search, X, ChevronLeft, ChevronRight, FileText, DollarSign, Building2, CheckCircle2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useAuthStore } from "@/app/store";
 
@@ -19,7 +19,6 @@ const C = {
   red: "#e53e3e",
   redBg: "#fff5f5",
   redText: "#c53030",
-  redBorder: "#fed7d7",
   blue: "#3b82f6",
   blueBg: "#eff6ff",
   blueText: "#1d4ed8",
@@ -37,65 +36,22 @@ const formatAmount = (amount: any): string => {
   return isNaN(num) ? '0.00' : num.toFixed(2);
 };
 
-const apiFetch = async (endpoint: string, token: string, options?: RequestInit) => {
+const apiFetch = async (endpoint: string, token: string) => {
   const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
   const res = await fetch(`${baseUrl}/api/v1/admin${endpoint}`, {
     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
     credentials: 'include',
-    ...options,
   });
   if (!res.ok) throw new Error();
   return res.json();
 };
 
-function Badge({ label, variant }: { label: string; variant: 'success' | 'error' | 'warning' | 'info' | 'purple' }) {
-  const variants = {
-    success: { bg: C.tealBg, text: C.tealText, border: C.tealBorder },
-    error: { bg: C.redBg, text: C.redText, border: C.redBorder },
-    warning: { bg: C.orangeBg, text: C.orangeText, border: C.orangeBorder },
-    info: { bg: C.blueBg, text: C.blueText, border: "#bfdbfe" },
-    purple: { bg: C.purpleBg, text: C.purpleText, border: "#ddd6fe" },
-  };
-  const style = variants[variant];
-  return (
-    <span style={{
-      fontSize: 11, fontWeight: 600, padding: "4px 10px", borderRadius: 100,
-      background: style.bg, color: style.text, border: `1px solid ${style.border}`,
-      whiteSpace: "nowrap", display: "inline-block",
-    }}>
-      {label}
-    </span>
-  );
-}
-
-function StatCard({ label, value, subtext, icon: Icon, color, bg }: { 
-  label: string; 
-  value: string | number; 
-  subtext?: string; 
-  icon: React.ElementType; 
-  color: string; 
-  bg: string;
-}) {
-  return (
-    <div style={{ background: C.bg, borderRadius: 12, border: `1px solid ${C.border}`, padding: "16px" }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <span style={{ fontSize: 11, color: C.muted }}>{label}</span>
-        <div style={{ width: 28, height: 28, borderRadius: 7, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Icon size={13} color={color} />
-        </div>
-      </div>
-      <p style={{ fontSize: 24, fontWeight: 700, color: C.text }}>{value}</p>
-      {subtext && <p style={{ fontSize: 10, color: C.faint, marginTop: 4 }}>{subtext}</p>}
-    </div>
-  );
-}
-
-export function InvoicesPage() {
-  const { token } = useAuthStore();
+export default function BillingHistoryPage() {
+  const navigate = useNavigate();
+  const { token, user } = useAuthStore();
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -113,10 +69,6 @@ export function InvoicesPage() {
     };
     fetchInvoices();
   }, [token]);
-
-  const handleSendReminder = async (inv: any) => {
-    toast.success(`Reminder sent for ${inv.invoice_number}`);
-  };
 
   const handlePrintInvoice = (inv: any) => {
     const amount = formatAmount(inv.amount_paid || inv.amount);
@@ -191,31 +143,19 @@ export function InvoicesPage() {
             <div class="details-grid">
               <div class="bill-to">
                 <h3>Bill To</h3>
-                <p><strong>${inv.clinic_name || 'N/A'}</strong></p>
+                <p><strong>${inv.clinic_name || user?.fullName || 'N/A'}</strong></p>
+                ${user?.email ? `<p>${user.email}</p>` : ''}
               </div>
               <div class="invoice-details">
                 <h3>Invoice Details</h3>
                 <div class="detail-row"><span class="label">Invoice Date:</span><span class="value">${new Date(inv.created_at).toLocaleDateString()}</span></div>
                 <div class="detail-row"><span class="label">Due Date:</span><span class="value">${new Date(new Date(inv.created_at).getTime() + 30*86400000).toLocaleDateString()}</span></div>
-                <div class="detail-row"><span class="label">Status:</span><span class="value" style="color:#0d9e75;">${inv.status || 'Paid'}</span></div>
+                <div class="detail-row"><span class="label">Status:</span><span class="value" style="color:#0d9e75;">Paid</span></div>
               </div>
             </div>
             <table class="invoice-table">
-              <thead>
-                <tr>
-                  <th>Description</th>
-                  <th>Quantity</th>
-                  <th>Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>${inv.plan || inv.plan_name} Plan - Monthly Subscription</td>
-                  <td>1</td>
-                  <td style="text-align:right">$${amount}</td>
-                  <td style="text-align:right">$${amount}</td>
-                </tr>
-              </tbody>
+              <thead><tr><th>Description</th><th>Quantity</th><th>Amount</th></tr></thead>
+              <tbody><tr><td>${inv.plan || inv.plan_name} Plan - Monthly Subscription</td><td>1</td><td style="text-align:right">$${amount}</td><td style="text-align:right">$${amount}</td></tr></tbody>
             </table>
             <div class="totals">
               <div class="totals-box">
@@ -249,33 +189,18 @@ export function InvoicesPage() {
     win?.document.close();
   };
 
-  const filtered = useMemo(() => {
-    let filtered = invoices;
-    if (search) {
-      filtered = filtered.filter(i => 
-        i.invoice_number?.toLowerCase().includes(search.toLowerCase()) ||
-        i.clinic_name?.toLowerCase().includes(search.toLowerCase())
-      );
-    }
-    if (statusFilter !== "all") {
-      filtered = filtered.filter(i => (i.status || 'paid').toLowerCase() === statusFilter);
-    }
-    return filtered;
-  }, [invoices, search, statusFilter]);
-
+  const filtered = invoices.filter(i => 
+    i.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    i.clinic_name?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
   const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
-  
-  const totalInvoices = invoices.length;
-  const totalPaid = invoices.filter(i => (i.status || 'paid') === 'paid').reduce((sum, i) => sum + (i.amount_paid || i.amount || 0), 0);
-  const totalOpen = invoices.filter(i => (i.status || 'paid') === 'open').reduce((sum, i) => sum + (i.amount_paid || i.amount || 0), 0);
-  const overdueCount = invoices.filter(i => (i.status || 'paid') === 'overdue').length;
+  const totalPaid = invoices.reduce((sum, i) => sum + (i.amount_paid || i.amount || 0), 0);
 
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', background: C.bgPage, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ width: 40, height: 40, border: `3px solid ${C.border}`, borderTopColor: C.teal, borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
@@ -285,63 +210,98 @@ export function InvoicesPage() {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: C.text, marginBottom: 4 }}>Invoices</h1>
-          <p style={{ fontSize: 13, color: C.muted }}>All invoices issued to clinics on the platform</p>
+          <button onClick={() => navigate('/settings/billing')} style={{ display: 'flex', alignItems: 'center', gap: 6, color: C.teal, background: 'none', border: 'none', cursor: 'pointer', marginBottom: 8 }}>
+            <ArrowLeft size={16} /> Back to Billing
+          </button>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: C.text, marginBottom: 4 }}>Billing History</h1>
+          <p style={{ fontSize: 13, color: C.muted }}>View all past invoices and payment history</p>
+        </div>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <div style={{ background: C.bgMuted, borderRadius: 8, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <FileText size={14} color={C.muted} />
+            <span style={{ fontSize: 12, color: C.muted }}>{invoices.length} Total Invoices</span>
+          </div>
+          <div style={{ background: C.tealBg, borderRadius: 8, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <DollarSign size={14} color={C.teal} />
+            <span style={{ fontSize: 12, fontWeight: 600, color: C.tealText }}>${totalPaid.toLocaleString()}</span>
+          </div>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
-        <StatCard icon={Receipt} label="Total Invoices" value={totalInvoices} subtext="All time invoices" color={C.blue} bg={C.blueBg} />
-        <StatCard icon={CheckCircle2} label="Paid This Month" value={`$${formatAmount(totalPaid)}`} subtext="100% collected" color={C.teal} bg={C.tealBg} />
-        <StatCard icon={Clock} label="Open Invoices" value={`$${formatAmount(totalOpen)}`} subtext="Awaiting payment" color={C.orange} bg={C.orangeBg} />
-        <StatCard icon={AlertCircle} label="Overdue" value={overdueCount} subtext="Need attention" color={C.red} bg={C.redBg} />
+      {/* Stats Cards - Inspired by InventoryPage */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
+        <div style={{ background: C.bg, borderRadius: 12, border: `1px solid ${C.border}`, padding: "16px" }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <span style={{ fontSize: 11, color: C.muted }}>Total Invoices</span>
+            <div style={{ width: 28, height: 28, borderRadius: 7, background: C.blueBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <FileText size={13} color={C.blue} />
+            </div>
+          </div>
+          <p style={{ fontSize: 24, fontWeight: 700, color: C.text }}>{invoices.length}</p>
+          <p style={{ fontSize: 10, color: C.faint, marginTop: 4 }}>All time invoices</p>
+        </div>
+        <div style={{ background: C.bg, borderRadius: 12, border: `1px solid ${C.border}`, padding: "16px" }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <span style={{ fontSize: 11, color: C.muted }}>Total Paid</span>
+            <div style={{ width: 28, height: 28, borderRadius: 7, background: C.tealBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <DollarSign size={13} color={C.teal} />
+            </div>
+          </div>
+          <p style={{ fontSize: 24, fontWeight: 700, color: C.teal }}>${formatAmount(totalPaid)}</p>
+          <p style={{ fontSize: 10, color: C.faint, marginTop: 4 }}>Total revenue collected</p>
+        </div>
+        <div style={{ background: C.bg, borderRadius: 12, border: `1px solid ${C.border}`, padding: "16px" }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <span style={{ fontSize: 11, color: C.muted }}>Last Invoice</span>
+            <div style={{ width: 28, height: 28, borderRadius: 7, background: C.purpleBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Building2 size={13} color={C.purple} />
+            </div>
+          </div>
+          <p style={{ fontSize: 24, fontWeight: 700, color: C.text }}>{invoices[0]?.invoice_number || 'N/A'}</p>
+          <p style={{ fontSize: 10, color: C.faint, marginTop: 4 }}>Most recent invoice</p>
+        </div>
       </div>
 
-      {/* Filters */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
-        <div style={{ position: 'relative', width: 320 }}>
-          <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: C.faint }} />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search by invoice # or clinic..."
+      {/* Search Bar - Inspired by InventoryPage */}
+      <div style={{ position: 'relative', width: 320, marginBottom: 20 }}>
+        <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: C.faint }} />
+        <input
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          placeholder="Search by invoice # or clinic..."
+          style={{
+            width: '100%',
+            height: 38,
+            padding: '0 12px 0 34px',
+            border: `1.5px solid ${C.border}`,
+            borderRadius: 9,
+            background: C.bg,
+            fontSize: 13,
+            fontFamily: 'inherit',
+            outline: 'none',
+            boxSizing: 'border-box',
+          }}
+          onFocus={e => e.currentTarget.style.borderColor = C.teal}
+          onBlur={e => e.currentTarget.style.borderColor = C.border}
+        />
+        {searchTerm && (
+          <button
+            onClick={() => setSearchTerm("")}
             style={{
-              width: '100%', height: 38, padding: '0 12px 0 34px',
-              border: `1.5px solid ${C.border}`, borderRadius: 9, background: C.bg,
-              fontSize: 13, fontFamily: 'inherit', outline: 'none',
+              position: 'absolute',
+              right: 10,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: C.faint,
+              display: 'flex',
             }}
-            onFocus={e => e.currentTarget.style.borderColor = C.teal}
-            onBlur={e => e.currentTarget.style.borderColor = C.border}
-          />
-          {search && (
-            <button onClick={() => setSearch("")} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: C.faint }}>
-              <X size={13} />
-            </button>
-          )}
-        </div>
-        <div style={{ display: 'flex', gap: 4 }}>
-          {[
-            { value: "all", label: "All", color: C.blue },
-            { value: "paid", label: "Paid", color: C.teal },
-            { value: "open", label: "Open", color: C.orange },
-            { value: "overdue", label: "Overdue", color: C.red },
-          ].map((s) => (
-            <button
-              key={s.value}
-              onClick={() => setStatusFilter(s.value)}
-              style={{
-                padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600,
-                border: `1px solid ${statusFilter === s.value ? s.color : C.border}`,
-                background: statusFilter === s.value ? `${s.color}15` : C.bg,
-                color: statusFilter === s.value ? s.color : C.muted,
-                cursor: "pointer", fontFamily: "inherit", textTransform: "capitalize",
-              }}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
+          >
+            <X size={13} />
+          </button>
+        )}
       </div>
 
       {/* Table */}
@@ -349,62 +309,52 @@ export function InvoicesPage() {
         <div style={{ overflowX: "auto" }}>
           {filtered.length === 0 ? (
             <div style={{ padding: "60px 20px", textAlign: "center" }}>
-              <Receipt size={40} color={C.border} style={{ margin: "0 auto 12px", display: "block" }} />
+              <FileText size={40} color={C.border} style={{ margin: "0 auto 12px", display: "block" }} />
               <p style={{ fontSize: 14, color: C.muted }}>No invoices found</p>
-              <p style={{ fontSize: 12, color: C.faint, marginTop: 4 }}>Try adjusting your search or filter</p>
+              <p style={{ fontSize: 12, color: C.faint, marginTop: 4 }}>Try adjusting your search or check back later</p>
             </div>
           ) : (
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ background: C.bgMuted, borderBottom: `1px solid ${C.border}` }}>
                   <th style={{ padding: "12px 16px", textAlign: "left", fontSize: 11, fontWeight: 600, color: C.muted }}>Invoice #</th>
+                  <th style={{ padding: "12px 16px", textAlign: "left", fontSize: 11, fontWeight: 600, color: C.muted }}>Date</th>
                   <th style={{ padding: "12px 16px", textAlign: "left", fontSize: 11, fontWeight: 600, color: C.muted }}>Clinic</th>
-                  <th style={{ padding: "12px 16px", textAlign: "left", fontSize: 11, fontWeight: 600, color: C.muted }}>Plan</th>
                   <th style={{ padding: "12px 16px", textAlign: "right", fontSize: 11, fontWeight: 600, color: C.muted }}>Amount</th>
-                  <th style={{ padding: "12px 16px", textAlign: "left", fontSize: 11, fontWeight: 600, color: C.muted }}>Issued</th>
-                  <th style={{ padding: "12px 16px", textAlign: "left", fontSize: 11, fontWeight: 600, color: C.muted }}>Due Date</th>
                   <th style={{ padding: "12px 16px", textAlign: "center", fontSize: 11, fontWeight: 600, color: C.muted }}>Status</th>
                   <th style={{ padding: "12px 16px", textAlign: "center", fontSize: 11, fontWeight: 600, color: C.muted }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {paginated.map((inv, idx) => {
-                  const status = inv.status || 'paid';
-                  const statusVariant = status === 'paid' ? 'success' : status === 'open' ? 'warning' : 'error';
-                  const planVariant = inv.plan === 'Enterprise' ? 'purple' : inv.plan === 'Pro' ? 'success' : 'info';
-                  const isDelinquent = status === 'overdue';
-                  
-                  return (
-                    <tr 
-                      key={inv.id} 
-                      style={{ borderBottom: idx < paginated.length - 1 ? `1px solid ${C.border}` : "none", transition: 'background 0.15s' }}
-                      onMouseEnter={e => e.currentTarget.style.background = C.bgMuted}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    >
-                      <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 500, fontFamily: "monospace", color: C.teal }}>{inv.invoice_number}</td>
-                      <td style={{ padding: "12px 16px", fontSize: 13 }}>{inv.clinic_name || '-'}</td>
-                      <td style={{ padding: "12px 16px" }}><Badge label={inv.plan || 'N/A'} variant={planVariant as any} /></td>
-                      <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 600 }}>${formatAmount(inv.amount_paid || inv.amount)}</td>
-                      <td style={{ padding: "12px 16px", fontSize: 13, color: C.muted }}>{new Date(inv.created_at).toLocaleDateString()}</td>
-                      <td style={{ padding: "12px 16px", fontSize: 13, color: isDelinquent ? C.red : C.muted, fontWeight: isDelinquent ? 600 : 400 }}>
-                        {new Date(new Date(inv.created_at).getTime() + 30*86400000).toLocaleDateString()}
-                      </td>
-                      <td style={{ padding: "12px 16px", textAlign: "center" }}><Badge label={status} variant={statusVariant} /></td>
-                      <td style={{ padding: "12px 16px", textAlign: "center" }}>
-                        <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
-                          <button onClick={() => handlePrintInvoice(inv)} style={{ background: C.bgMuted, border: "none", borderRadius: 6, padding: "6px 8px", cursor: "pointer", color: C.teal, transition: 'all 0.2s' }} title="Print Invoice">
-                            <Eye size={14} />
-                          </button>
-                          {status !== 'paid' && (
-                            <button onClick={() => handleSendReminder(inv)} style={{ background: C.bgMuted, border: "none", borderRadius: 6, padding: "6px 8px", cursor: "pointer", color: C.orange, transition: 'all 0.2s' }} title="Send Reminder">
-                              <Send size={14} />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {paginated.map((inv, idx) => (
+                  <tr 
+                    key={inv.id} 
+                    style={{ borderBottom: idx < paginated.length - 1 ? `1px solid ${C.border}` : "none", transition: 'background 0.15s' }}
+                    onMouseEnter={e => e.currentTarget.style.background = C.bgMuted}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 500, fontFamily: "monospace" }}>{inv.invoice_number}</td>
+                    <td style={{ padding: "12px 16px", fontSize: 13, color: C.muted }}>{new Date(inv.created_at).toLocaleDateString()}</td>
+                    <td style={{ padding: "12px 16px", fontSize: 13 }}>{inv.clinic_name || '-'}</td>
+                    <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 600 }}>${formatAmount(inv.amount_paid || inv.amount)}</td>
+                    <td style={{ padding: "12px 16px", textAlign: "center" }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: C.tealBg, color: C.tealText, padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 500 }}>
+                        <CheckCircle2 size={10} /> Paid
+                      </span>
+                    </td>
+                    <td style={{ padding: "12px 16px", textAlign: "center" }}>
+                      <button 
+                        onClick={() => handlePrintInvoice(inv)} 
+                        style={{ background: C.bgMuted, border: "none", borderRadius: 6, padding: "6px 10px", cursor: "pointer", color: C.teal, transition: 'all 0.2s' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = C.tealBg; e.currentTarget.style.color = C.tealText; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = C.bgMuted; e.currentTarget.style.color = C.teal; }}
+                        title="Print Invoice"
+                      >
+                        <Printer size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           )}
@@ -417,11 +367,19 @@ export function InvoicesPage() {
               Showing {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filtered.length)} of {filtered.length} entries
             </span>
             <div style={{ display: "flex", gap: 4 }}>
-              <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} style={{ padding: "6px 10px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.bg, cursor: 'pointer', opacity: currentPage === 1 ? 0.5 : 1 }}>
+              <button 
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
+                disabled={currentPage === 1} 
+                style={{ padding: "6px 10px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.bg, cursor: currentPage === 1 ? 'not-allowed' : 'pointer', opacity: currentPage === 1 ? 0.5 : 1 }}
+              >
                 <ChevronLeft size={14} />
               </button>
               <span style={{ padding: "4px 12px", fontSize: 13, fontWeight: 500 }}>{currentPage} / {totalPages}</span>
-              <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} style={{ padding: "6px 10px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.bg, cursor: 'pointer', opacity: currentPage === totalPages ? 0.5 : 1 }}>
+              <button 
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
+                disabled={currentPage === totalPages} 
+                style={{ padding: "6px 10px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.bg, cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', opacity: currentPage === totalPages ? 0.5 : 1 }}
+              >
                 <ChevronRight size={14} />
               </button>
             </div>

@@ -97,7 +97,7 @@ EDAHAB_API_KEY=...
 **Frontend (`Front_End/.env`):**
 ```env
 VITE_API_URL=http://localhost:3000
-VITE_APP_NAME=Dental Clinic Portal
+VITE_APP_NAME=Daryeel App — Multi-Clinic Dental SaaS Platform
 VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
 VITE_GEMINI_API_KEY=...  # Optional AI assistant
 ```

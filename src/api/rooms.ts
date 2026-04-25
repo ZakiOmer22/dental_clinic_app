@@ -1,5 +1,9 @@
 import client from "./client";
 
+const API_PREFIX = import.meta.env.VITE_API_VERSION
+  ? `/api/${import.meta.env.VITE_API_VERSION}`
+  : "";
+
 export interface Room {
   id: number;
   clinic_id: number;
@@ -37,20 +41,17 @@ export interface UpdateRoomData {
 
 // GET all rooms
 export const apiGetRooms = async (): Promise<Room[]> => {
-  const res = await client.get("/rooms");
-  return res.data;
+  return (await client.get(`${API_PREFIX}/rooms`)).data;
 };
 
 // GET one room
 export const apiGetRoomById = async (id: number): Promise<Room> => {
-  const res = await client.get(`/rooms/${id}`);
-  return res.data;
+  return (await client.get(`${API_PREFIX}/rooms/${id}`)).data;
 };
 
 // CREATE room
 export const apiCreateRoom = async (data: CreateRoomData): Promise<Room> => {
-  const res = await client.post("/rooms", data);
-  return res.data;
+  return (await client.post(`${API_PREFIX}/rooms`, data)).data;
 };
 
 // UPDATE room
@@ -58,11 +59,10 @@ export const apiUpdateRoom = async (
   id: number,
   data: UpdateRoomData
 ): Promise<Room> => {
-  const res = await client.put(`/rooms/${id}`, data);
-  return res.data;
+  return (await client.put(`${API_PREFIX}/rooms/${id}`, data)).data;
 };
 
 // DELETE room
 export const apiDeleteRoom = async (id: number): Promise<void> => {
-  await client.delete(`/rooms/${id}`);
+  await client.delete(`${API_PREFIX}/rooms/${id}`);
 };

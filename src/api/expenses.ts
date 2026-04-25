@@ -1,4 +1,4 @@
-import client from "./client";
+import client, { withApi } from "./client";
 
 // ────────────────────────────────
 // TYPES
@@ -22,7 +22,7 @@ export const apiGetExpenses = async (params?: {
   page?: number;
   limit?: number;
 }) => {
-  return (await client.get("/expenses", { params })).data;
+  return (await client.get(withApi("/expenses"), { params })).data;
 };
 
 export const apiCreateExpense = async (data: {
@@ -31,23 +31,23 @@ export const apiCreateExpense = async (data: {
   category: string;
   date: string;
 }) => {
-  return (await client.post("/expenses", data)).data;
+  return (await client.post(withApi("/expenses"), data)).data;
 };
 
 export const apiUpdateExpense = async (
   id: number,
   data: Partial<Expense>
 ) => {
-  return (await client.put(`/expenses/${id}`, data)).data;
+  return (await client.put(withApi(`/expenses/${id}`), data)).data;
 };
 
 export const apiDeleteExpense = async (id: number) => {
-  return (await client.delete(`/expenses/${id}`)).data;
+  return (await client.delete(withApi(`/expenses/${id}`))).data;
 };
 
 export const apiGetExpenseSummary = async (params?: {
   from?: string;
   to?: string;
 }) => {
-  return (await client.get("/expenses/summary", { params })).data;
+  return (await client.get(withApi("/expenses/summary"), { params })).data;
 };

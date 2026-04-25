@@ -1,5 +1,9 @@
 import client from "./client";
 
+const API_PREFIX = import.meta.env.VITE_API_VERSION
+  ? `/api/${import.meta.env.VITE_API_VERSION}`
+  : "";
+
 export interface StorageFile {
   id: number;
   name: string;
@@ -36,14 +40,12 @@ export interface StorageStats {
 
 // GET stats
 export const apiGetStorageStats = async () => {
-  const res = await client.get("/storage/stats");
-  return res.data;
+  return (await client.get(`${API_PREFIX}/storage/stats`)).data;
 };
 
 // GET files
 export const apiGetFiles = async (params?: any) => {
-  const res = await client.get("/storage/files", { params });
-  return res.data;
+  return (await client.get(`${API_PREFIX}/storage/files`, { params })).data;
 };
 
 // UPLOAD file
@@ -51,33 +53,29 @@ export const apiUploadFile = async (file: File) => {
   const formData = new FormData();
   formData.append("file", file);
 
-  const res = await client.post("/storage/upload", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
-
-  return res.data;
+  return (
+    await client.post(`${API_PREFIX}/storage/upload`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    })
+  ).data;
 };
 
 // DELETE file
 export const apiDeleteFile = async (id: number) => {
-  const res = await client.delete(`/storage/files/${id}`);
-  return res.data;
+  return (await client.delete(`${API_PREFIX}/storage/files/${id}`)).data;
 };
 
 // GET download URL
 export const apiGetFileUrl = async (id: number) => {
-  const res = await client.get(`/storage/files/${id}/download`);
-  return res.data;
+  return (await client.get(`${API_PREFIX}/storage/files/${id}/download`)).data;
 };
 
 // CLEANUP
 export const apiCleanupStorage = async (data?: any) => {
-  const res = await client.post("/storage/cleanup", data || {});
-  return res.data;
+  return (await client.post(`${API_PREFIX}/storage/cleanup`, data || {})).data;
 };
 
 // SEARCH
 export const apiSearchFiles = async (query: string) => {
-  const res = await client.get("/storage/search", { params: { q: query } });
-  return res.data;
+  return (await client.get(`${API_PREFIX}/storage/search`, { params: { q: query } })).data;
 };

@@ -27,13 +27,12 @@ export const apiLogin = async (
   email: string,
   password: string
 ): Promise<AuthResponse> => {
-  const res = await client.post("/auth/login", { email, password });
-  return res.data;
+  const res = await client.post("/api/v1/auth/login", { email, password });
+  return res.data.data || res.data;
 };
 
 // ─────────────────────────────────────────────
 // REGISTER (SECURED)
-// backend MUST assign role + clinicId
 // ─────────────────────────────────────────────
 
 export const apiRegister = async (
@@ -44,7 +43,7 @@ export const apiRegister = async (
     phone?: string;
   }
 ): Promise<AuthResponse> => {
-  const res = await client.post("/auth/register", data);
+  const res = await client.post("/api/v1/auth/register", data);
   return res.data;
 };
 
@@ -53,7 +52,7 @@ export const apiRegister = async (
 // ─────────────────────────────────────────────
 
 export const apiLogout = async (): Promise<void> => {
-  await client.post("/auth/logout").catch(() => {});
+  await client.post("/api/v1/auth/logout").catch(() => {});
 };
 
 // ─────────────────────────────────────────────
@@ -61,7 +60,7 @@ export const apiLogout = async (): Promise<void> => {
 // ─────────────────────────────────────────────
 
 export const apiForgotPassword = async (email: string) => {
-  const res = await client.post("/auth/forgot-password", { email });
+  const res = await client.post("/api/v1/auth/forgot-password", { email });
   return res.data;
 };
 
@@ -69,7 +68,7 @@ export const apiResetPassword = async (
   token: string,
   newPassword: string
 ) => {
-  const res = await client.post("/auth/reset-password", {
+  const res = await client.post("/api/v1/auth/reset-password", {
     token,
     newPassword,
   });

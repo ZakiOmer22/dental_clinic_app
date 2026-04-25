@@ -15,32 +15,32 @@ import { apiGetAppointments } from "@/api";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
-  border:    "#e5eae8",
-  bg:        "#ffffff",
-  bgPage:    "#f0f2f1",
-  bgMuted:   "#f7f9f8",
-  text:      "#111816",
-  muted:     "#7a918b",
-  faint:     "#a0b4ae",
-  teal:      "#0d9e75",
-  tealBg:    "#e8f7f2",
-  tealText:  "#0a7d5d",
-  tealBorder:"#c3e8dc",
-  amber:     "#f59e0b",
-  amberBg:   "#fffbeb",
+  border: "#e5eae8",
+  bg: "#ffffff",
+  bgPage: "#f0f2f1",
+  bgMuted: "#f7f9f8",
+  text: "#111816",
+  muted: "#7a918b",
+  faint: "#a0b4ae",
+  teal: "#0d9e75",
+  tealBg: "#e8f7f2",
+  tealText: "#0a7d5d",
+  tealBorder: "#c3e8dc",
+  amber: "#f59e0b",
+  amberBg: "#fffbeb",
   amberText: "#92400e",
-  amberBorder:"#fde68a",
-  red:       "#e53e3e",
-  redBg:     "#fff5f5",
-  redText:   "#c53030",
+  amberBorder: "#fde68a",
+  red: "#e53e3e",
+  redBg: "#fff5f5",
+  redText: "#c53030",
   redBorder: "#fed7d7",
-  blue:      "#3b82f6",
-  blueBg:    "#eff6ff",
-  blueText:  "#1d4ed8",
-  blueBorder:"#bfdbfe",
-  purple:    "#8b5cf6",
-  purpleBg:  "#f5f3ff",
-  purpleText:"#5b21b6",
+  blue: "#3b82f6",
+  blueBg: "#eff6ff",
+  blueText: "#1d4ed8",
+  blueBorder: "#bfdbfe",
+  purple: "#8b5cf6",
+  purpleBg: "#f5f3ff",
+  purpleText: "#5b21b6",
 };
 
 // ─── Primitives ───────────────────────────────────────────────────────────────
@@ -94,11 +94,11 @@ function SectionHead({
 
 function Badge({ label, color }: { label: string; color: "green" | "amber" | "red" | "blue" | "gray" | "purple" }) {
   const map = {
-    green:  { bg: C.tealBg,   text: C.tealText,   border: C.tealBorder },
-    amber:  { bg: C.amberBg,  text: C.amberText,  border: C.amberBorder },
-    red:    { bg: C.redBg,    text: C.redText,     border: C.redBorder },
-    blue:   { bg: C.blueBg,   text: C.blueText,   border: C.blueBorder },
-    gray:   { bg: C.bgMuted,  text: C.muted,      border: C.border },
+    green: { bg: C.tealBg, text: C.tealText, border: C.tealBorder },
+    amber: { bg: C.amberBg, text: C.amberText, border: C.amberBorder },
+    red: { bg: C.redBg, text: C.redText, border: C.redBorder },
+    blue: { bg: C.blueBg, text: C.blueText, border: C.blueBorder },
+    gray: { bg: C.bgMuted, text: C.muted, border: C.border },
     purple: { bg: C.purpleBg, text: C.purpleText, border: "#ddd6fe" },
   }[color];
   return (
@@ -211,7 +211,7 @@ function DonutChart({ segments, size = 80 }: {
         {segments.map((seg, i) => {
           const pct = seg.value / total;
           const dash = circumference * pct;
-          const gap  = circumference - dash;
+          const gap = circumference - dash;
           const el = (
             <circle
               key={i}
@@ -353,12 +353,14 @@ export default function DashboardPage() {
     queryFn: apiGetLowStock,
   });
 
-  const appts: any[]    = Array.isArray(todayAppts) ? todayAppts : (todayAppts as any)?.data ?? [];
-  const totalPatients   = (patientsRes as any)?.total ?? 0;
+  const appts: any[] = Array.isArray(todayAppts) ? todayAppts : (todayAppts as any)?.data ?? [];
+  const totalPatients = (patientsRes as any)?.total ?? 0;
   const invoices: any[] = (invoicesRes as any)?.data ?? [];
-  const totalRevenue    = invoices.reduce((a: number, i: any) => a + parseFloat(i.paid_amount ?? 0), 0);
+  const totalRevenue = invoices.reduce((a: number, i: any) => a + parseFloat(i.paid_amount ?? 0), 0);
   const pendingInvoices = invoices.filter((i: any) => ["unpaid", "partial"].includes(i.status)).length;
-  const lowStockArr     = lowStock as any[];
+  const lowStockArr: any[] = Array.isArray(lowStock)
+    ? lowStock
+    : (lowStock as any)?.data ?? [];
 
   const completed = appts.filter((a) => a.status === "completed").length;
   const cancelled = appts.filter((a) => a.status === "cancelled" || a.status === "no_show").length;
@@ -431,7 +433,7 @@ export default function DashboardPage() {
             color={C.blue}
             trend="All registered"
             trendUp
-            spark={[42,48,44,51,55,58,62,totalPatients]}
+            spark={[42, 48, 44, 51, 55, 58, 62, totalPatients]}
           />
           <KpiCard
             label="Today's Appointments"
@@ -441,7 +443,7 @@ export default function DashboardPage() {
             sub={`${completed} completed · ${cancelled} cancelled`}
             trend={`${appts.length - completed - cancelled} remaining`}
             trendUp={appts.length > 8}
-            spark={[6,9,8,11,10,12,appts.length]}
+            spark={[6, 9, 8, 11, 10, 12, appts.length]}
           />
           <KpiCard
             label="Revenue Collected"
@@ -450,7 +452,7 @@ export default function DashboardPage() {
             color={C.teal}
             trend="↑ 18% vs last month"
             trendUp
-            spark={[8200,9400,8700,11200,10500,totalRevenue || 12480]}
+            spark={[8200, 9400, 8700, 11200, 10500, totalRevenue || 12480]}
           />
           <KpiCard
             label="Pending Invoices"
@@ -460,7 +462,7 @@ export default function DashboardPage() {
             sub={pendingInvoices > 0 ? "Awaiting payment" : "All invoices settled"}
             trend={pendingInvoices > 0 ? `${pendingInvoices} need attention` : "All clear"}
             trendUp={pendingInvoices === 0}
-            spark={[3,5,4,7,6,pendingInvoices]}
+            spark={[3, 5, 4, 7, 6, pendingInvoices]}
           />
         </div>
 
@@ -477,7 +479,7 @@ export default function DashboardPage() {
             />
             {loadingAppts ? (
               <div style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 14 }}>
-                {[1,2,3,4].map((i) => (
+                {[1, 2, 3, 4].map((i) => (
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     <Skeleton w={38} h={11} />
                     <Skeleton w={30} h={30} />
@@ -532,10 +534,10 @@ export default function DashboardPage() {
                 <DonutChart
                   size={84}
                   segments={[
-                    { color: C.teal,  value: completed,                            label: "Completed" },
-                    { color: C.blue,  value: appts.filter((a) => a.status === "confirmed").length,  label: "Confirmed" },
-                    { color: C.amber, value: appts.filter((a) => a.status === "waiting").length,    label: "Waiting" },
-                    { color: C.red,   value: cancelled,                            label: "Cancelled" },
+                    { color: C.teal, value: completed, label: "Completed" },
+                    { color: C.blue, value: appts.filter((a) => a.status === "confirmed").length, label: "Confirmed" },
+                    { color: C.amber, value: appts.filter((a) => a.status === "waiting").length, label: "Waiting" },
+                    { color: C.red, value: cancelled, label: "Cancelled" },
                   ].filter((s) => s.value > 0)}
                 />
               </div>
@@ -543,9 +545,9 @@ export default function DashboardPage() {
 
             {/* Quick stats */}
             {[
-              { label: "Lab Orders",    value: 4,  icon: FlaskConical, color: C.purple,  path: "/lab-orders" },
-              { label: "Prescriptions", value: 12, icon: Stethoscope,  color: C.blue,    path: "/prescriptions" },
-              { label: "Notifications", value: 6,  icon: Bell,         color: C.amber,   path: "/notifications" },
+              { label: "Lab Orders", value: 4, icon: FlaskConical, color: C.purple, path: "/lab-orders" },
+              { label: "Prescriptions", value: 12, icon: Stethoscope, color: C.blue, path: "/prescriptions" },
+              { label: "Notifications", value: 6, icon: Bell, color: C.amber, path: "/notifications" },
             ].map((item) => (
               <button
                 key={item.label}
@@ -613,10 +615,10 @@ export default function DashboardPage() {
             {/* Payment method breakdown */}
             <div style={{ borderTop: `1px solid ${C.border}`, padding: "12px 18px", display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
               {[
-                { method: "Cash",    pct: 43, color: C.teal },
-                { method: "Card",    pct: 31, color: C.blue },
-                { method: "Mobile",  pct: 17, color: C.purple },
-                { method: "Insur.",  pct: 9,  color: C.amber },
+                { method: "Cash", pct: 43, color: C.teal },
+                { method: "Card", pct: 31, color: C.blue },
+                { method: "Mobile", pct: 17, color: C.purple },
+                { method: "Insur.", pct: 9, color: C.amber },
               ].map((m) => (
                 <div key={m.method} style={{ textAlign: "center" }}>
                   <div style={{ height: 3, borderRadius: 2, background: m.color, marginBottom: 4 }} />
@@ -634,12 +636,12 @@ export default function DashboardPage() {
             />
             <div style={{ padding: "14px 18px" }}>
               {[
-                { name: "Scaling",    count: 31, color: C.teal },
-                { name: "Filling",    count: 29, color: C.blue },
+                { name: "Scaling", count: 31, color: C.teal },
+                { name: "Filling", count: 29, color: C.blue },
                 { name: "Root Canal", count: 24, color: C.purple },
                 { name: "Extraction", count: 18, color: C.amber },
-                { name: "Crown",      count: 12, color: C.red },
-                { name: "Whitening",  count: 8,  color: C.faint },
+                { name: "Crown", count: 12, color: C.red },
+                { name: "Whitening", count: 8, color: C.faint },
               ].map((p) => (
                 <ProcBar key={p.name} name={p.name} count={p.count} max={31} color={p.color} />
               ))}
@@ -655,9 +657,9 @@ export default function DashboardPage() {
               {/* Status summary */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 14 }}>
                 {[
-                  { label: "OK",       value: 79, icon: CheckCircle2, color: C.teal },
-                  { label: "Low",      value: 3,  icon: AlertTriangle,color: C.amber },
-                  { label: "Critical", value: 2,  icon: XCircle,      color: C.red },
+                  { label: "OK", value: 79, icon: CheckCircle2, color: C.teal },
+                  { label: "Low", value: 3, icon: AlertTriangle, color: C.amber },
+                  { label: "Critical", value: 2, icon: XCircle, color: C.red },
                 ].map((s) => (
                   <div key={s.label} style={{ textAlign: "center", padding: "8px 4px", background: C.bgMuted, borderRadius: 8 }}>
                     <s.icon size={14} color={s.color} style={{ margin: "0 auto 3px", display: "block" }} />
@@ -717,11 +719,11 @@ export default function DashboardPage() {
                 ))}
               </div>
               {[
-                { patient: "Amina Hassan",   amount: "$266",  status: "partial",  date: "15 Jan" },
-                { patient: "Omar Nuur",      amount: "$150",  status: "unpaid",   date: "15 Jan" },
-                { patient: "Hodan Jama",     amount: "$500",  status: "paid",     date: "14 Jan" },
-                { patient: "Mahad Ali",      amount: "$80",   status: "paid",     date: "13 Jan" },
-                { patient: "Khalid Cali",    amount: "$80",   status: "unpaid",   date: "10 Jan" },
+                { patient: "Amina Hassan", amount: "$266", status: "partial", date: "15 Jan" },
+                { patient: "Omar Nuur", amount: "$150", status: "unpaid", date: "15 Jan" },
+                { patient: "Hodan Jama", amount: "$500", status: "paid", date: "14 Jan" },
+                { patient: "Mahad Ali", amount: "$80", status: "paid", date: "13 Jan" },
+                { patient: "Khalid Cali", amount: "$80", status: "unpaid", date: "10 Jan" },
               ].map((row, i) => {
                 const statusMap: Record<string, "amber" | "green" | "red" | "blue" | "gray"> = {
                   paid: "green", partial: "amber", unpaid: "red", overdue: "red", void: "gray",
@@ -762,12 +764,12 @@ export default function DashboardPage() {
               <SectionHead title="Recent Activity" icon={Activity} iconColor={C.purple} />
               <div style={{ padding: "4px 18px 8px" }}>
                 {[
-                  { icon: Users,       bg: C.tealBg,   title: "New patient registered",      sub: "Ikram Daud — PT-00086",              time: "5m" },
-                  { icon: CalendarDays,bg: C.blueBg,   title: "Appointment confirmed",        sub: "Amina Hassan — 15 Jan 09:00",        time: "12m" },
-                  { icon: ReceiptText, bg: C.amberBg,  title: "Invoice paid",                 sub: "INV-00203 · $500 by Hodan Jama",     time: "1h" },
-                  { icon: Package,     bg: C.redBg,    title: "Low stock alert",              sub: "Composite Resin A2 — 3 units left",  time: "2h" },
-                  { icon: Stethoscope, bg: C.purpleBg, title: "Treatment completed",          sub: "Root Canal · Dr. Farah",             time: "3h" },
-                  { icon: Bell,        bg: C.tealBg,   title: "Recall reminder sent",         sub: "6 patients — 6-month cleaning due",  time: "4h" },
+                  { icon: Users, bg: C.tealBg, title: "New patient registered", sub: "Ikram Daud — PT-00086", time: "5m" },
+                  { icon: CalendarDays, bg: C.blueBg, title: "Appointment confirmed", sub: "Amina Hassan — 15 Jan 09:00", time: "12m" },
+                  { icon: ReceiptText, bg: C.amberBg, title: "Invoice paid", sub: "INV-00203 · $500 by Hodan Jama", time: "1h" },
+                  { icon: Package, bg: C.redBg, title: "Low stock alert", sub: "Composite Resin A2 — 3 units left", time: "2h" },
+                  { icon: Stethoscope, bg: C.purpleBg, title: "Treatment completed", sub: "Root Canal · Dr. Farah", time: "3h" },
+                  { icon: Bell, bg: C.tealBg, title: "Recall reminder sent", sub: "6 patients — 6-month cleaning due", time: "4h" },
                 ].map((item, i) => (
                   <div key={i} style={{ borderBottom: i < 5 ? `1px solid ${C.border}` : "none" }}>
                     <ActivityItem {...item} />
@@ -781,12 +783,12 @@ export default function DashboardPage() {
               <SectionHead title="Quick Actions" icon={MoreHorizontal} iconColor={C.muted} />
               <div style={{ padding: "10px 12px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 {[
-                  { label: "New Patient",    icon: Users,       color: C.teal,   path: "/patients" },
-                  { label: "Book Appt",      icon: CalendarDays,color: C.blue,   path: "/appointments" },
-                  { label: "Create Invoice", icon: ReceiptText, color: C.amber,  path: "/billing" },
-                  { label: "Add Expense",    icon: Wallet,      color: C.purple, path: "/expenses" },
-                  { label: "Lab Order",      icon: FlaskConical,color: C.red,    path: "/lab-orders" },
-                  { label: "View Reports",   icon: TrendingUp,  color: C.teal,   path: "/reports" },
+                  { label: "New Patient", icon: Users, color: C.teal, path: "/patients" },
+                  { label: "Book Appt", icon: CalendarDays, color: C.blue, path: "/appointments" },
+                  { label: "Create Invoice", icon: ReceiptText, color: C.amber, path: "/billing" },
+                  { label: "Add Expense", icon: Wallet, color: C.purple, path: "/expenses" },
+                  { label: "Lab Order", icon: FlaskConical, color: C.red, path: "/lab-orders" },
+                  { label: "View Reports", icon: TrendingUp, color: C.teal, path: "/reports" },
                 ].map((a) => (
                   <button
                     key={a.path}

@@ -159,10 +159,13 @@ export default function AssistantPatientProfilePage() {
   if(isLoading)return <div style={{padding:"60px 0",textAlign:"center",color:C.faint,fontSize:13}}>Loading patient…</div>;
   if(!patient) return <div style={{padding:"60px 0",textAlign:"center",color:C.faint,fontSize:13}}>Patient not found.</div>;
 
-  const p=patient as any;
-  const visits:any[]=history?.visits??history?.data??[];
-  const invoices:any[]=(balance as any)?.invoices??(balance as any)?.data??[];
-  const files:any[]=Array.isArray(filesRaw)?filesRaw:(filesRaw as any)?.data??[];
+    const patientResp = patient as any;
+  const p = patientResp?.data?.patient ?? patientResp?.patient ?? patientResp;
+  const historyData = (history as any)?.data ?? history;
+  const balanceData = (balance as any)?.data ?? balance;
+  const files:any[] = Array.isArray(filesRaw) ? filesRaw : Array.isArray((filesRaw as any)?.data?.data) ? (filesRaw as any).data.data : Array.isArray((filesRaw as any)?.data) ? (filesRaw as any).data : [];
+  const visits:any[] = Array.isArray(historyData?.visits) ? historyData.visits : Array.isArray(historyData?.data) ? historyData.data : Array.isArray(historyData) ? historyData : [];
+  const invoices:any[] = Array.isArray(balanceData?.invoices) ? balanceData.invoices : Array.isArray(balanceData?.data) ? balanceData.data : [];
 
   const tabs:[Tab,string,any][]=[
     ["overview","Overview",User],

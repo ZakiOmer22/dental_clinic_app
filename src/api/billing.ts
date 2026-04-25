@@ -1,36 +1,41 @@
-import client from "./client";
+import client, { withApi } from "./client";
 
 // ─── Invoices ────────────────────────────────────────────────
 export const apiGetInvoices = async (params?: any) => {
-  return (await client.get("/billing/invoices", { params })).data;
+  return (await client.get(withApi("/billing/invoices"), { params })).data;
 };
 
 export const apiGetInvoice = async (id: number) => {
-  return (await client.get(`/billing/invoices/${id}`)).data;
+  return (await client.get(withApi(`/billing/invoices/${id}`))).data;
 };
 
 export const apiCreateInvoice = async (data: any) => {
-  return (await client.post("/billing/invoices", data)).data;
+  return (await client.post(withApi("/billing/invoices"), data)).data;
 };
 
 export const apiDeleteInvoice = async (id: number) => {
-  return (await client.delete(`/billing/invoices/${id}`)).data;
+  return (await client.delete(withApi(`/billing/invoices/${id}`))).data;
 };
 
-// ─── Payments (FIXED ROUTE) ─────────────────────────────────
+// ─── Payments ────────────────────────────────────────────────
 export const apiCreatePayment = async (data: any) => {
-  return (await client.post("/billing/payments", data)).data;
+  return (await client.post(withApi("/billing/payments"), data)).data;
 };
 
 export const apiGetPayments = async (params?: any) => {
-  return (await client.get("/billing/payments", { params })).data;
+  return (await client.get(withApi("/billing/payments"), { params })).data;
 };
 
 export const apiRecordPayment = async (invoiceId: number, data: any) => {
-  return (await client.post(`/billing/invoices/${invoiceId}/payment`, data)).data;
+  return (await client.post(
+    withApi(`/billing/invoices/${invoiceId}/payment`),
+    data
+  )).data;
 };
 
 // ─── Patient Balance ─────────────────────────────────────────
 export const apiGetPatientBillingBalance = async (patientId: number) => {
-  return (await client.get(`/billing/patient/${patientId}/balance`)).data;
+  return (await client.get(
+    withApi(`/billing/patient/${patientId}/balance`)
+  )).data;
 };

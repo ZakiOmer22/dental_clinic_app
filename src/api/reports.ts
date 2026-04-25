@@ -1,35 +1,29 @@
-// ─────────────────────────────────────────────────────────────
-// src/api/reports.ts (CLEAN + SECURE)
-// ─────────────────────────────────────────────────────────────
-
 import client from "./client";
 
+const API_PREFIX = import.meta.env.VITE_API_VERSION
+  ? `/api/${import.meta.env.VITE_API_VERSION}`
+  : "";
+
 export const apiGetRevenueReport = async (params?: any) => {
-  const res = await client.get("/reports/revenue", { params });
-  return res.data;
+  return (await client.get(`${API_PREFIX}/reports/revenue`, { params })).data;
 };
 
 export const apiGetDailySchedule = async (params?: any) => {
-  const res = await client.get("/reports/schedule", { params });
-  return res.data;
+  return (await client.get(`${API_PREFIX}/reports/schedule`, { params })).data;
 };
 
 export const apiGetRecallsDue = async () => {
-  const res = await client.get("/reports/recalls");
-  return res.data;
+  return (await client.get(`${API_PREFIX}/reports/recalls`)).data;
 };
 
 export const apiGetExpensesReport = async (params?: any) => {
-  const res = await client.get("/reports/expenses", { params });
-  return res.data;
+  return (await client.get(`${API_PREFIX}/reports/expenses`, { params })).data;
 };
 
 export const apiGetRevenueBreakdown = async (params?: any) => {
-  const res = await client.get("/reports/revenue-breakdown", { params });
-  return res.data;
+  return (await client.get(`${API_PREFIX}/reports/revenue-breakdown`, { params })).data;
 };
 
 export const apiGetDashboardStats = async () => {
-  const res = await client.get("/reports/dashboard");
-  return res.data;
+  return (await client.get(`${API_PREFIX}/reports/dashboard`)).data;
 };

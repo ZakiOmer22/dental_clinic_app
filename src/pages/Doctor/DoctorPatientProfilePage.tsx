@@ -1537,20 +1537,21 @@ export default function DoctorPatientProfilePage() {
         placeholderData: [],
     });
 
-    const { data: treatments, isLoading: treatmentsLoading } = useQuery({
+        const { data: treatments, isLoading: treatmentsLoading } = useQuery({
         queryKey: ["patient-treatments", patientId],
         queryFn: () => apiGetTreatments(patientId),
         enabled: !isNaN(patientId) && patientId > 0 && (activeTab === "treatment" || activeTab === "history"),
         retry: 1,
     });
+    const treatmentsList = Array.isArray(treatments) ? treatments : (treatments as any)?.data ?? [];
 
-    const { data: prescriptions, isLoading: prescriptionsLoading } = useQuery({
+        const { data: prescriptions, isLoading: prescriptionsLoading } = useQuery({
         queryKey: ["patient-prescriptions", patientId],
         queryFn: () => apiGetPrescriptions(patientId),
         enabled: !isNaN(patientId) && patientId > 0 && activeTab === "prescriptions",
         retry: 1,
     });
-
+    const prescriptionsList = Array.isArray(prescriptions) ? prescriptions : (prescriptions as any)?.data ?? [];
     const { data: labOrders, isLoading: labOrdersLoading } = useQuery({
         queryKey: ["patient-lab-orders", patientId],
         queryFn: () => apiGetLabOrders(patientId),
@@ -1621,7 +1622,14 @@ export default function DoctorPatientProfilePage() {
         );
     }
 
-    const p = patient as any;
+    const patientObj = (patient as any)?.data?.patient ?? (patient as any)?.patient ?? patient;
+    const p = {
+    ...patientObj,
+    allergies: patientObj?.allergies || [],
+    medical_conditions: patientObj?.medical_conditions || [],
+    emergency_contacts: patientObj?.emergency_contacts || [],
+    insurance_policies: patientObj?.insurance_policies || [],
+    };
     const age = p.date_of_birth ? new Date().getFullYear() - new Date(p.date_of_birth).getFullYear() : null;
 
     const tabs: [DoctorTab, string, any][] = [
@@ -1737,7 +1745,7 @@ export default function DoctorPatientProfilePage() {
                     </div>
 
                     {/* Alerts row */}
-                    {(p.allergies?.length > 0 || p.medical_conditions?.length > 0) && (
+                    {(Array.isArray(p.allergies) && p.allergies.length > 0) || (Array.isArray(p.medical_conditions) && p.medical_conditions.length > 0) ? (
                         <div style={{
                             padding: "12px 24px 16px",
                             borderTop: `1px solid ${C.border}`,
@@ -1746,7 +1754,7 @@ export default function DoctorPatientProfilePage() {
                             flexWrap: "wrap",
                             alignItems: "center"
                         }}>
-                            {p.allergies?.map((a: any) => (
+                            {(Array.isArray(p.allergies) ? p.allergies : []).map((a: any) => (
                                 <span key={a.id} style={{
                                     display: "inline-flex",
                                     alignItems: "center",
@@ -1763,7 +1771,7 @@ export default function DoctorPatientProfilePage() {
                                 </span>
                             ))}
 
-                            {p.medical_conditions?.map((c: any) => (
+                            {(Array.isArray(p.medical_conditions) ? p.medical_conditions : []).map((c: any) => (
                                 <span key={c.id} style={{
                                     display: "inline-flex",
                                     alignItems: "center",
@@ -1780,7 +1788,7 @@ export default function DoctorPatientProfilePage() {
                                 </span>
                             ))}
                         </div>
-                    )}
+                    ) : null}
                 </div>
 
                 {/* Main content card with tabs */}
@@ -1942,8 +1950,8 @@ export default function DoctorPatientProfilePage() {
                                         </Section>
 
                                         <Section title="Current Medications">
-                                            {prescriptions?.filter((rx: any) => !rx.is_dispensed).length > 0 ? (
-                                                prescriptions
+                                            {prescriptionsList?.filter((rx: any) => !rx.is_dispensed).length > 0 ? (
+                                                prescriptionsList
                                                     .filter((rx: any) => !rx.is_dispensed)
                                                     .slice(0, 3)
                                                     .map((rx: any) => (
@@ -2281,7 +2289,7 @@ export default function DoctorPatientProfilePage() {
                                     </div>
                                 ) : (
                                     <>
-                                        {(!files || (Array.isArray(files) && files.length === 0) || (!Array.isArray(files) && files?.data?.length === 0)) ? (
+                                        {(!files || (Array.isArray(files) && files.length === 0) || (!Array.isArray(files) && (!files?.data || files?.data?.length === 0))) ? (
                                             <div style={{ padding: "40px 0", textAlign: "center" }}>
                                                 <FolderOpen size={28} color={C.border} style={{ margin: "0 auto 8px", display: "block" }} />
                                                 <p style={{ fontSize: 13, color: C.faint }}>No files uploaded yet</p>
@@ -2304,7 +2312,9 @@ export default function DoctorPatientProfilePage() {
                                             </div>
                                         ) : (
                                             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 12 }}>
-                                                {(Array.isArray(files) ? files : files?.data || []).map((file: any) => (
+                                                {(() => {
+                                                    const filesArr = Array.isArray(files) ? files : Array.isArray(files?.data) ? files.data : Array.isArray(files?.data?.data) ? files.data.data : [];
+                                                    return filesArr.map((file: any) => (
                                                     <a
                                                         key={file.id}
                                                         href={file.file_url}
@@ -2376,7 +2386,8 @@ export default function DoctorPatientProfilePage() {
                                                             </p>
                                                         </div>
                                                     </a>
-                                                ))}
+                                                    ));
+                                                })()}
                                             </div>
                                         )}
                                     </>

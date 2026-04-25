@@ -1,4 +1,4 @@
-import client from "./client";
+import client, { withApi } from "./client";
 
 // ────────────────────────────────
 // TYPES
@@ -26,15 +26,15 @@ export const apiGetFeedback = async (params?: {
   limit?: number;
   offset?: number;
 }) => {
-  return (await client.get("/feedback", { params })).data;
+  return (await client.get(withApi("/feedback"), { params })).data;
 };
 
 export const apiGetFeedbackStats = async () => {
-  return (await client.get("/feedback/stats")).data;
+  return (await client.get(withApi("/feedback/stats"))).data;
 };
 
 export const apiGetFeedbackById = async (id: number) => {
-  return (await client.get(`/feedback/${id}`)).data;
+  return (await client.get(withApi(`/feedback/${id}`))).data;
 };
 
 export const apiSubmitFeedback = async (data: {
@@ -42,16 +42,16 @@ export const apiSubmitFeedback = async (data: {
   rating?: number;
   comment: string;
 }) => {
-  return (await client.post("/feedback", data)).data;
+  return (await client.post(withApi("/feedback"), data)).data;
 };
 
 export const apiRespondToFeedback = async (
   id: number,
   data: { response: string }
 ) => {
-  return (await client.post(`/feedback/${id}/respond`, data)).data;
+  return (await client.post(withApi(`/feedback/${id}/respond`), data)).data;
 };
 
 export const apiDeleteFeedback = async (id: number) => {
-  return (await client.delete(`/feedback/${id}`)).data;
+  return (await client.delete(withApi(`/feedback/${id}`))).data;
 };

@@ -151,18 +151,28 @@ export default function PatientProfilePage() {
   const patientId=Number(id);
   const [tab,setTab]=useState<Tab>("overview");
 
-  const {data:patient,isLoading}=useQuery({queryKey:["patient",patientId],queryFn:()=>apiGetPatient(patientId),enabled:!!patientId});
-  const {data:history}=useQuery({queryKey:["patient-history",patientId],queryFn:()=>apiGetPatientHistory(patientId),enabled:tab==="history"});
-  const {data:balance}=useQuery({queryKey:["patient-balance",patientId],queryFn:()=>apiGetPatientBalance(patientId),enabled:!!patientId});
-  const {data:filesRaw}=useQuery({queryKey:["patient-files",patientId],queryFn:()=>apiGetPatientFiles(patientId),enabled:tab==="files"});
+  const {data:patientData,isLoading}=useQuery({queryKey:["patient",patientId],queryFn:()=>apiGetPatient(patientId),enabled:!!patientId});
+  const {data:historyData}=useQuery({queryKey:["patient-history",patientId],queryFn:()=>apiGetPatientHistory(patientId),enabled:tab==="history"});
+  const {data:balanceData}=useQuery({queryKey:["patient-balance",patientId],queryFn:()=>apiGetPatientBalance(patientId),enabled:!!patientId});
+  const {data:filesData}=useQuery({queryKey:["patient-files",patientId],queryFn:()=>apiGetPatientFiles(patientId),enabled:tab==="files"});
+
+  // Extract nested data from API responses
+  const patientResp: any = patientData ?? {};
+  const patient = patientResp?.data?.patient ?? patientResp?.patient ?? patientResp;
+  const balanceResp: any = balanceData ?? {};
+  const balance = balanceResp?.data ?? balanceResp;
+  const historyResp: any = historyData ?? {};
+  const history = historyResp?.data ?? historyResp;
+  const filesResp: any = filesData ?? {};
 
   if(isLoading)return <div style={{padding:"60px 0",textAlign:"center",color:C.faint,fontSize:13}}>Loading patient…</div>;
-  if(!patient) return <div style={{padding:"60px 0",textAlign:"center",color:C.faint,fontSize:13}}>Patient not found.</div>;
+  if(!patient || !patient.id) return <div style={{padding:"60px 0",textAlign:"center",color:C.faint,fontSize:13}}>Patient not found.</div>;
 
-  const p=patient as any;
-  const visits:any[]=history?.visits??history?.data??[];
-  const invoices:any[]=(balance as any)?.invoices??(balance as any)?.data??[];
-  const files:any[]=Array.isArray(filesRaw)?filesRaw:(filesRaw as any)?.data??[];
+  const p=patient;
+  // Ensure arrays
+  const visits:any[] = Array.isArray(history?.visits) ? history.visits : Array.isArray(history?.data) ? history.data : Array.isArray(history) ? history : [];
+  const invoices:any[] = Array.isArray(balance?.invoices) ? balance.invoices : Array.isArray(balance?.data) ? balance.data : [];
+  const files:any[] = Array.isArray(filesResp?.data) ? filesResp.data : Array.isArray(filesResp) ? filesResp : [];
 
   const tabs:[Tab,string,any][]=[
     ["overview","Overview",User],
@@ -191,7 +201,6 @@ export default function PatientProfilePage() {
 
         {/* ── Profile header ── */}
         <div style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:14,overflow:"hidden"}}>
-          {/* Colour bar */}
           <div style={{height:6,background:`linear-gradient(90deg,${C.teal},${C.blue})`}}/>
           <div style={{padding:"24px",display:"flex",alignItems:"flex-start",gap:20,flexWrap:"wrap"}}>
             <Avi name={p.full_name??"?"} size={68}/>
@@ -206,8 +215,6 @@ export default function PatientProfilePage() {
                   <span style={{fontSize:12,fontWeight:600,padding:"4px 10px",borderRadius:100,background:p.is_active!==false?C.tealBg:C.bgMuted,color:p.is_active!==false?C.tealText:C.muted,border:`1px solid ${p.is_active!==false?C.tealBorder:C.border}`}}>{p.is_active!==false?"Active":"Inactive"}</span>
                 </div>
               </div>
-
-              {/* Quick info row */}
               <div style={{display:"flex",gap:16,flexWrap:"wrap",marginTop:8}}>
                 {[[Phone,p.phone],[Mail,p.email],[MapPin,[p.address,p.city].filter(Boolean).join(", ") || null],[Calendar,p.date_of_birth?new Date(p.date_of_birth).toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"}):null],[Briefcase,p.occupation]].map(([Icon,val],i)=>val&&(
                   <div key={i} style={{display:"flex",alignItems:"center",gap:5}}>
@@ -218,8 +225,6 @@ export default function PatientProfilePage() {
               </div>
             </div>
           </div>
-
-          {/* Alerts row */}
           {(p.allergies?.length>0||p.medical_conditions?.length>0)&&(
             <div style={{padding:"12px 24px 16px",borderTop:`1px solid ${C.border}`,display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
               {p.allergies?.map((a:any)=>(
@@ -236,12 +241,9 @@ export default function PatientProfilePage() {
           )}
         </div>
 
-        {/* ── Balance cards ── */}
         <BalanceCards balance={balance}/>
 
-        {/* ── Tabbed card ── */}
         <div style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:14,overflow:"hidden"}}>
-          {/* Tab bar */}
           <div style={{display:"flex",borderBottom:`1px solid ${C.border}`,background:C.bgMuted,padding:"0 8px"}}>
             {tabs.map(([key,label,Icon])=>{
               const active=tab===key;
@@ -253,10 +255,8 @@ export default function PatientProfilePage() {
             })}
           </div>
 
-          {/* ── OVERVIEW tab ── */}
           {tab==="overview"&&(
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:0}}>
-              {/* Left col */}
               <div style={{padding:"20px",borderRight:`1px solid ${C.border}`}}>
                 <Section title="Personal Information">
                   <InfoRow icon={Phone}    label="Phone"       value={p.phone}/>
@@ -267,22 +267,16 @@ export default function PatientProfilePage() {
                   <InfoRow icon={Briefcase}label="Occupation"  value={p.occupation}/>
                   <InfoRow icon={Calendar} label="Referred by" value={p.referred_by}/>
                 </Section>
-
                 {p.notes&&(
                   <Section title="Medical Notes">
                     <p style={{fontSize:13,color:C.text,lineHeight:1.6}}>{p.notes}</p>
                   </Section>
                 )}
-
-                {/* Dental chart */}
                 <Section title="Dental Chart">
                   <DentalChart chart={p.dental_chart??[]}/>
                 </Section>
               </div>
-
-              {/* Right col */}
               <div style={{padding:"20px"}}>
-                {/* Emergency contacts */}
                 {p.emergency_contacts?.length>0&&(
                   <Section title="Emergency Contacts">
                     {p.emergency_contacts.map((ec:any)=>(
@@ -294,8 +288,6 @@ export default function PatientProfilePage() {
                     ))}
                   </Section>
                 )}
-
-                {/* Insurance */}
                 {p.insurance_policies?.length>0&&(
                   <Section title="Insurance Policies">
                     {p.insurance_policies.map((ins:any)=>(
@@ -322,7 +314,6 @@ export default function PatientProfilePage() {
             </div>
           )}
 
-          {/* ── HISTORY tab ── */}
           {tab==="history"&&(
             <div>
               <div style={{display:"grid",gridTemplateColumns:"100px 100px 1.4fr 140px 100px 110px",padding:"9px 18px",background:C.bgMuted,borderBottom:`1px solid ${C.border}`}}>
@@ -352,7 +343,6 @@ export default function PatientProfilePage() {
             </div>
           )}
 
-          {/* ── BILLING tab ── */}
           {tab==="billing"&&(
             <div>
               <div style={{display:"grid",gridTemplateColumns:"130px 100px 110px 110px 110px 100px",padding:"9px 18px",background:C.bgMuted,borderBottom:`1px solid ${C.border}`}}>
@@ -377,7 +367,6 @@ export default function PatientProfilePage() {
             </div>
           )}
 
-          {/* ── FILES tab ── */}
           {tab==="files"&&(
             <div style={{padding:20}}>
               {files.length===0

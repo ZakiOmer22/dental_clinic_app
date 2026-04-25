@@ -1,4 +1,4 @@
-import client from "./client";
+import client, { withApi } from "./client";
 
 // ────────────────────────────────
 // TYPES
@@ -23,11 +23,11 @@ export const apiGetConsentForms = async (params?: {
   page?: number;
   limit?: number;
 }) => {
-  return (await client.get("/consent-forms", { params })).data;
+  return (await client.get(withApi("/consent-forms"), { params })).data;
 };
 
 export const apiGetConsentForm = async (id: number) => {
-  return (await client.get(`/consent-forms/${id}`)).data;
+  return (await client.get(withApi(`/consent-forms/${id}`))).data;
 };
 
 export const apiCreateConsentForm = async (data: {
@@ -35,16 +35,19 @@ export const apiCreateConsentForm = async (data: {
   title: string;
   content: string;
 }) => {
-  return (await client.post("/consent-forms", data)).data;
+  return (await client.post(withApi("/consent-forms"), data)).data;
 };
 
 export const apiSignConsentForm = async (
   id: number,
   data: { signedBy: string; witness?: string }
 ) => {
-  return (await client.patch(`/consent-forms/${id}/sign`, data)).data;
+  return (await client.patch(
+    withApi(`/consent-forms/${id}/sign`),
+    data
+  )).data;
 };
 
 export const apiDeleteConsentForm = async (id: number) => {
-  return (await client.delete(`/consent-forms/${id}`)).data;
+  return (await client.delete(withApi(`/consent-forms/${id}`))).data;
 };

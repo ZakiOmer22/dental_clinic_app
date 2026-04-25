@@ -7,6 +7,12 @@ export function setNavigate(fn: (path: string) => void) {
   _navigate = fn;
 }
 
+// ✅ NEW: API VERSION PREFIX (controlled from .env)
+const API_VERSION = import.meta.env.VITE_API_VERSION || "v1";
+
+// ✅ helper to prefix routes automatically
+export const withApi = (url: string) => `/api/${API_VERSION}${url}`;
+
 const client = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
   timeout: 15000,
@@ -29,7 +35,6 @@ client.interceptors.request.use((config) => {
 // RESPONSE INTERCEPTOR
 // ────────────────────────────────
 
-// Guard: prevents multiple simultaneous 401s from each calling clear() + redirect
 let isHandling401 = false;
 
 client.interceptors.response.use(
@@ -37,7 +42,6 @@ client.interceptors.response.use(
   (err) => {
     const status = err.response?.status;
 
-    // ✅ FIX 2: Only handle 401 once, not for every concurrent failed request
     if (status === 401 && !isHandling401) {
       isHandling401 = true;
 
@@ -49,7 +53,6 @@ client.interceptors.response.use(
         window.location.replace("/login");
       }
 
-      // Reset after navigation settles
       setTimeout(() => {
         isHandling401 = false;
       }, 2000);

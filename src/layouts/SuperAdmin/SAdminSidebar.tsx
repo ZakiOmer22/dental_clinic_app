@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { useUIStore, useAuthStore } from "@/app/store";
 
-const APP_NAME = import.meta.env.VITE_APP_NAME ?? "Dental Clinic Portal";
+const APP_NAME = import.meta.env.VITE_APP_NAME ?? "Daryeel App";
 
 interface NavItem {
     path: string;

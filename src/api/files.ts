@@ -1,4 +1,4 @@
-import client from "./client";
+import client, { withApi } from "./client";
 
 export interface FileUploadResponse {
   url: string;
@@ -22,7 +22,7 @@ export const apiUploadFile = async (
   if (toothNumber) formData.append("toothNumber", toothNumber);
   if (description) formData.append("description", description);
 
-  const res = await client.post("/files/upload", formData, {
+  const res = await client.post(withApi("/files/upload"), formData, {
     headers: {
       "Content-Type": "multipart/form-data",
     },
@@ -32,6 +32,6 @@ export const apiUploadFile = async (
 };
 
 export const apiDeleteFile = async (id: number) => {
-  const res = await client.delete(`/files/${id}`);
+  const res = await client.delete(withApi(`/files/${id}`));
   return res.data;
 };

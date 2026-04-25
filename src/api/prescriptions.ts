@@ -1,35 +1,33 @@
 // ─────────────────────────────────────────────────────────────
-// src/api/prescriptions.ts (CLEAN + SECURE)
+// src/api/prescriptions.ts (UPDATED WITH VERSIONING)
 // ─────────────────────────────────────────────────────────────
 
 import client from "./client";
 
+const API_PREFIX = import.meta.env.VITE_API_VERSION
+  ? `/api/${import.meta.env.VITE_API_VERSION}`
+  : "";
+
 export const apiGetPrescriptions = async (params?: any) => {
-  const res = await client.get("/prescriptions", { params });
-  return res.data;
+  return (await client.get(`${API_PREFIX}/prescriptions`, { params })).data;
 };
 
 export const apiGetPrescription = async (id: number) => {
-  const res = await client.get(`/prescriptions/${id}`);
-  return res.data;
+  return (await client.get(`${API_PREFIX}/prescriptions/${id}`)).data;
 };
 
 export const apiCreatePrescription = async (data: any) => {
-  const res = await client.post("/prescriptions", data);
-  return res.data;
+  return (await client.post(`${API_PREFIX}/prescriptions`, data)).data;
 };
 
 export const apiUpdatePrescription = async (id: number, data: any) => {
-  const res = await client.put(`/prescriptions/${id}`, data);
-  return res.data;
+  return (await client.put(`${API_PREFIX}/prescriptions/${id}`, data)).data;
 };
 
 export const apiMarkDispensed = async (id: number) => {
-  const res = await client.patch(`/prescriptions/${id}/dispense`);
-  return res.data;
+  return (await client.patch(`${API_PREFIX}/prescriptions/${id}/dispense`)).data;
 };
 
 export const apiDeletePrescription = async (id: number) => {
-  const res = await client.delete(`/prescriptions/${id}`);
-  return res.data;
+  return (await client.delete(`${API_PREFIX}/prescriptions/${id}`)).data;
 };

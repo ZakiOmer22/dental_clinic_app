@@ -1,4 +1,4 @@
-import client from "./client";
+import client, { withApi } from "./client";
 
 // ────────────────────────────────
 // TYPES (unchanged)
@@ -28,28 +28,28 @@ export interface BackupResponse {
 // CORE API (SECURED)
 // ────────────────────────────────
 export const apiGetBackups = async (params?: any): Promise<BackupResponse> => {
-  const res = await client.get("/backups", { params });
+  const res = await client.get(withApi("/backups"), { params });
   return res.data;
 };
 
 export const apiCreateBackup = async (data?: any): Promise<Backup> => {
-  const res = await client.post("/backups", data || {});
+  const res = await client.post(withApi("/backups"), data || {});
   return res.data;
 };
 
 export const apiDownloadBackup = async (id: number): Promise<Blob> => {
-  const res = await client.get(`/backups/${id}/download`, {
+  const res = await client.get(withApi(`/backups/${id}/download`), {
     responseType: "blob"
   });
   return res.data;
 };
 
 export const apiRestoreBackup = async (id: number) => {
-  const res = await client.post(`/backups/${id}/restore`);
+  const res = await client.post(withApi(`/backups/${id}/restore`));
   return res.data;
 };
 
 export const apiDeleteBackup = async (id: number) => {
-  const res = await client.delete(`/backups/${id}`);
+  const res = await client.delete(withApi(`/backups/${id}`));
   return res.data;
 };

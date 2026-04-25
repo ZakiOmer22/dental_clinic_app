@@ -358,7 +358,7 @@ export default function DoctorDashboardPage() {
   const invoices: any[] = (invoicesRes as any)?.data ?? [];
   const totalRevenue    = invoices.reduce((a: number, i: any) => a + parseFloat(i.paid_amount ?? 0), 0);
   const pendingInvoices = invoices.filter((i: any) => ["unpaid", "partial"].includes(i.status)).length;
-  const lowStockArr     = lowStock as any[];
+  const lowStockArr: any[] = Array.isArray(lowStock) ? lowStock : (lowStock as any)?.data ?? (lowStock as any)?.alerts ?? [];
 
   const completed = appts.filter((a) => a.status === "completed").length;
   const cancelled = appts.filter((a) => a.status === "cancelled" || a.status === "no_show").length;

@@ -113,7 +113,7 @@ function LabOrderPrintView({ order, clinic, patient }: { order: any; clinic: any
           </div>
           <div style={{ textAlign: "right" }}>
             <p style={{ fontSize: "10px", color: C.faint, margin: 0 }}>Powered by Ealif Suite</p>
-            <p style={{ fontSize: "10px", color: C.faint, margin: 0 }}>Dental Clinic Portal</p>
+            <p style={{ fontSize: "10px", color: C.faint, margin: 0 }}>Daryeel App — Multi-Clinic Dental SaaS Platform</p>
           </div>
         </div>
         <p style={{ fontSize: "14px", color: C.muted, marginTop: "5px" }}>Laboratory Order Form</p>
