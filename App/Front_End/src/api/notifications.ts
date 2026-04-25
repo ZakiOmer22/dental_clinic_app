@@ -1,8 +1,12 @@
 // ─────────────────────────────────────────────────────────────
-// src/api/notifications.ts (CLEAN + SECURE)
+// src/api/notifications.ts (UPDATED WITH VERSIONING)
 // ─────────────────────────────────────────────────────────────
 
 import client from "./client";
+
+const API_PREFIX = import.meta.env.VITE_API_VERSION
+  ? `/api/${import.meta.env.VITE_API_VERSION}`
+  : "";
 
 export interface Notification {
   id: number;
@@ -19,23 +23,19 @@ export const apiGetNotifications = async (params?: {
   isRead?: boolean;
   type?: string;
 }) => {
-  const res = await client.get("/notifications", { params });
-  return res.data;
+  return (await client.get(`${API_PREFIX}/notifications`, { params })).data;
 };
 
 export const apiGetUnreadCount = async (): Promise<{ count: number }> => {
-  const res = await client.get("/notifications/unread-count");
-  return res.data;
+  return (await client.get(`${API_PREFIX}/notifications/unread-count`)).data;
 };
 
 export const apiMarkNotificationRead = async (id: number) => {
-  const res = await client.patch(`/notifications/${id}/read`);
-  return res.data;
+  return (await client.patch(`${API_PREFIX}/notifications/${id}/read`)).data;
 };
 
 export const apiMarkAllRead = async () => {
-  const res = await client.patch("/notifications/read-all");
-  return res.data;
+  return (await client.patch(`${API_PREFIX}/notifications/read-all`)).data;
 };
 
 export const apiCreateNotification = async (data: {
@@ -45,11 +45,9 @@ export const apiCreateNotification = async (data: {
   title?: string;
   message: string;
 }) => {
-  const res = await client.post("/notifications", data);
-  return res.data;
+  return (await client.post(`${API_PREFIX}/notifications`, data)).data;
 };
 
 export const apiDeleteNotification = async (id: number) => {
-  const res = await client.delete(`/notifications/${id}`);
-  return res.data;
+  return (await client.delete(`${API_PREFIX}/notifications/${id}`)).data;
 };

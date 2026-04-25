@@ -1,113 +1,338 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Building2, Users, DollarSign, Activity, TrendingUp,
   Clock, CheckCircle2, XCircle, AlertTriangle, ArrowRight,
-  BarChart3, Shield,
+  BarChart3, Shield, CreditCard, Calendar, Globe,
+  Server, Database, Zap, Settings, Bell, ChevronRight,
+  MoreHorizontal, Wallet, LayoutDashboard, Rocket,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { PageWrapper, PageHeader, StatCard, Card, Badge, SectionTitle, SA } from "@/pages/superAdmin/shared";
+import { useAuthStore } from "@/app/store";
 
-// ─── Mock Data ────────────────────────────────────────────────────────
-const STATS = [
-  { icon: <Building2 size={20} />, label: "Total Clinics", value: "142", trend: "+12 this month", positive: true, color: SA.accent, bg: SA.accentLight },
-  { icon: <Users size={20} />, label: "Active Users", value: "1,284", trend: "+8.3%", positive: true, color: SA.info, bg: SA.infoBg },
-  { icon: <DollarSign size={20} />, label: "Monthly Revenue", value: "$48,600", trend: "+15.2%", positive: true, color: SA.success, bg: SA.successBg },
-  { icon: <Activity size={20} />, label: "Avg. Uptime", value: "99.7%", trend: "Last 30 days", positive: true, color: SA.warning, bg: SA.warningBg },
-];
+// ─── Design tokens (matching the regular dashboard) ──────────────────────────
+const C = {
+  border:    "#e5eae8",
+  bg:        "#ffffff",
+  bgPage:    "#f0f2f1",
+  bgMuted:   "#f7f9f8",
+  text:      "#111816",
+  muted:     "#7a918b",
+  faint:     "#a0b4ae",
+  teal:      "#0d9e75",
+  tealBg:    "#e8f7f2",
+  tealText:  "#0a7d5d",
+  tealBorder:"#c3e8dc",
+  amber:     "#f59e0b",
+  amberBg:   "#fffbeb",
+  amberText: "#92400e",
+  amberBorder:"#fde68a",
+  red:       "#e53e3e",
+  redBg:     "#fff5f5",
+  redText:   "#c53030",
+  redBorder: "#fed7d7",
+  blue:      "#3b82f6",
+  blueBg:    "#eff6ff",
+  blueText:  "#1d4ed8",
+  blueBorder:"#bfdbfe",
+  purple:    "#8b5cf6",
+  purpleBg:  "#f5f3ff",
+  purpleText:"#5b21b6",
+};
 
-const RECENT_CLINICS = [
-  { id: 1, name: "Bright Smile Clinic", city: "Mogadishu", plan: "Pro", status: "active", users: 8, joined: "Apr 14" },
-  { id: 2, name: "Al-Noor Dental", city: "Hargeisa", plan: "Starter", status: "active", users: 3, joined: "Apr 13" },
-  { id: 3, name: "PerfectTeeth Center", city: "Bosaso", plan: "Enterprise", status: "active", users: 22, joined: "Apr 11" },
-  { id: 4, name: "DentaCare Plus", city: "Kismayo", plan: "Pro", status: "pending", users: 0, joined: "Apr 10" },
-  { id: 5, name: "WhiteArc Dental", city: "Garowe", plan: "Pro", status: "active", users: 11, joined: "Apr 9" },
-];
+// ─── Components matching the regular dashboard style ─────────────────────────
+function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden", ...style }}>
+      {children}
+    </div>
+  );
+}
 
-const ACTIVITY = [
-  { id: 1, type: "clinic_joined", text: "Bright Smile Clinic signed up (Pro Plan)", time: "2h ago", icon: <Building2 size={14} />, color: SA.accent },
-  { id: 2, type: "payment", text: "Invoice #INV-1042 paid · $299", time: "5h ago", icon: <DollarSign size={14} />, color: SA.success },
-  { id: 3, type: "alert", text: "Al-Noor Dental storage at 92%", time: "8h ago", icon: <AlertTriangle size={14} />, color: SA.warning },
-  { id: 4, type: "approval", text: "DentaCare Plus pending approval", time: "12h ago", icon: <Clock size={14} />, color: SA.info },
-  { id: 5, type: "user", text: "New super-admin account created: Aisha Omar", time: "1d ago", icon: <Users size={14} />, color: SA.accent },
-  { id: 6, type: "payment", text: "Invoice #INV-1041 paid · $599", time: "2d ago", icon: <DollarSign size={14} />, color: SA.success },
-];
+function SectionHead({ title, sub, action, icon: Icon, iconColor }: {
+  title: string; sub?: string;
+  action?: { label: string; onClick: () => void };
+  icon?: React.ElementType; iconColor?: string;
+}) {
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+      padding: "14px 18px", borderBottom: `1px solid ${C.border}`,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {Icon && (
+          <div style={{
+            width: 28, height: 28, borderRadius: 7,
+            background: (iconColor ?? C.teal) + "18",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <Icon size={13} color={iconColor ?? C.teal} strokeWidth={2} />
+          </div>
+        )}
+        <div>
+          <p style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{title}</p>
+          {sub && <p style={{ fontSize: 11, color: C.faint, marginTop: 1 }}>{sub}</p>}
+        </div>
+      </div>
+      {action && (
+        <button onClick={action.onClick} style={{
+          display: "flex", alignItems: "center", gap: 3,
+          fontSize: 12, fontWeight: 600, color: C.teal,
+          background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0,
+        }}>
+          {action.label} <ChevronRight size={12} />
+        </button>
+      )}
+    </div>
+  );
+}
 
-const PLAN_DIST = [
-  { plan: "Starter", count: 42, pct: 30, color: SA.info },
-  { plan: "Pro", count: 71, pct: 50, color: SA.accent },
-  { plan: "Enterprise", count: 29, pct: 20, color: SA.success },
-];
+function Badge({ label, color }: { label: string; color: "green" | "amber" | "red" | "blue" | "gray" | "purple" }) {
+  const map = {
+    green:  { bg: C.tealBg,   text: C.tealText,   border: C.tealBorder },
+    amber:  { bg: C.amberBg,  text: C.amberText,  border: C.amberBorder },
+    red:    { bg: C.redBg,    text: C.redText,    border: C.redBorder },
+    blue:   { bg: C.blueBg,   text: C.blueText,   border: C.blueBorder },
+    gray:   { bg: C.bgMuted,  text: C.muted,      border: C.border },
+    purple: { bg: C.purpleBg, text: C.purpleText, border: "#ddd6fe" },
+  }[color];
+  return (
+    <span style={{
+      fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 100,
+      background: map.bg, color: map.text, border: `1px solid ${map.border}`,
+      whiteSpace: "nowrap", textTransform: "capitalize",
+    }}>
+      {label}
+    </span>
+  );
+}
+
+function KpiCard({ label, value, trend, trendUp, icon: Icon, color, bg }: {
+  label: string; value: string | number;
+  trend?: string; trendUp?: boolean;
+  icon: React.ElementType; color: string; bg?: string;
+}) {
+  return (
+    <Card>
+      <div style={{ padding: "16px 18px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <span style={{ fontSize: 12, color: C.muted, fontWeight: 500 }}>{label}</span>
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: bg ?? color + "18", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Icon size={14} color={color} strokeWidth={1.8} />
+          </div>
+        </div>
+        <p style={{ fontSize: 28, fontWeight: 700, color: C.text, letterSpacing: "-.03em", lineHeight: 1 }}>{value}</p>
+        {trend && (
+          <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 8, fontSize: 11 }}>
+            {trendUp ? <TrendingUp size={11} color={C.teal} /> : <TrendingDown size={11} color={C.red} />}
+            <span style={{ color: trendUp ? C.tealText : C.redText }}>{trend}</span>
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function DonutChart({ segments, size = 80 }: {
+  segments: { color: string; value: number; label: string }[];
+  size?: number;
+}) {
+  const total = segments.reduce((s, d) => s + d.value, 0);
+  const r = 28, cx = size / 2, cy = size / 2;
+  const circumference = 2 * Math.PI * r;
+  let offset = 0;
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ flexShrink: 0 }}>
+        {segments.map((seg, i) => {
+          const pct = seg.value / total;
+          const dash = circumference * pct;
+          const el = (
+            <circle
+              key={i}
+              cx={cx} cy={cy} r={r}
+              fill="none"
+              stroke={seg.color}
+              strokeWidth={10}
+              strokeDasharray={`${dash} ${circumference - dash}`}
+              strokeDashoffset={-offset * circumference / total + circumference * 0.25}
+              style={{ transform: "rotate(-90deg)", transformOrigin: "center" }}
+            />
+          );
+          offset += seg.value;
+          return el;
+        })}
+        <text x={cx} y={cy + 1} textAnchor="middle" dominantBaseline="middle" style={{ fontSize: 13, fontWeight: 700, fill: C.text }}>
+          {total}
+        </text>
+        <text x={cx} y={cy + 14} textAnchor="middle" dominantBaseline="middle" style={{ fontSize: 8, fill: C.faint }}>
+          total
+        </text>
+      </svg>
+      <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+        {segments.map((s) => (
+          <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: s.color, flexShrink: 0 }} />
+            <span style={{ fontSize: 11, color: C.muted }}>{s.label}</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: C.text, marginLeft: "auto", paddingLeft: 8 }}>{s.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// API fetch helper
+const apiFetch = async (endpoint: string, token: string) => {
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  const res = await fetch(`${baseUrl}/api/v1/admin${endpoint}`, {
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+};
 
 export default function SuperAdminDashboard() {
   const navigate = useNavigate();
+  const { token } = useAuthStore();
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalClinics: 0,
+    activeClinics: 0,
+    pendingClinics: 0,
+    totalPatients: 0,
+    monthlyRevenue: 0,
+    activeSubscriptions: 0,
+    trialClinics: 0,
+  });
+  const [recentClinics, setRecentClinics] = useState<any[]>([]);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [growthData, setGrowthData] = useState({ revenue: 0, growth: 12.5, mrr: 0 });
 
-  const planVariant = (p: string) =>
-    p === "Enterprise" ? "success" : p === "Pro" ? "purple" : "info";
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!token) return;
+      try {
+        const dashboardData = await apiFetch('/dashboard', token);
+        setStats({
+          totalClinics: dashboardData.totalClinics || 0,
+          activeClinics: dashboardData.activeClinics || 0,
+          pendingClinics: dashboardData.pendingApprovals || 0,
+          totalPatients: dashboardData.totalPatients || 0,
+          monthlyRevenue: dashboardData.monthlyRevenue || 0,
+          activeSubscriptions: dashboardData.activeSubscriptions || 0,
+          trialClinics: dashboardData.trialClinics || 0,
+        });
 
-  const statusVariant = (s: string) =>
-    s === "active" ? "success" : s === "pending" ? "warning" : "neutral";
+        const clinicsData = await apiFetch('/clinics', token);
+        setRecentClinics((clinicsData.clinics || []).slice(0, 5).map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          city: c.city || 'N/A',
+          plan: c.plan_name || 'Basic',
+          status: c.status || 'pending',
+          joined: new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        })));
+
+        const revenueData = await apiFetch('/revenue', token);
+        setGrowthData({
+          revenue: revenueData.total || 0,
+          mrr: revenueData.mrr || 0,
+          growth: revenueData.growth || 12.5,
+        });
+
+        try {
+          const auditData = await apiFetch('/audit-logs?limit=6', token);
+          setRecentActivity((auditData.logs || []).slice(0, 6).map((log: any) => ({
+            id: log.id,
+            text: `${log.action || 'Action'} performed`,
+            time: new Date(log.created_at).toLocaleDateString(),
+          })));
+        } catch (err) {
+          setRecentActivity([]);
+        }
+      } catch (err) {
+        console.error('Failed to fetch:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [token]);
+
+  const planDistribution = [
+    { plan: "Starter", count: 42, pct: 30, color: C.blue },
+    { plan: "Pro", count: 71, pct: 50, color: C.teal },
+    { plan: "Enterprise", count: 29, pct: 20, color: C.purple },
+  ];
+
+  if (loading) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: C.bgPage }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ width: 48, height: 48, border: `3px solid ${C.border}`, borderTopColor: C.teal, borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto" }} />
+          <p style={{ marginTop: 16, color: C.muted }}>Loading platform data...</p>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <PageWrapper>
-      <PageHeader
-        breadcrumb="Super Admin · Platform"
-        title="Platform Overview"
-        subtitle="Monitor all clinics, revenue, and system health from one place"
-        action={
-          <div style={{ display: "flex", gap: 8 }}>
-            <button
-              onClick={() => navigate("/admin/pending")}
-              style={{
-                display: "flex", alignItems: "center", gap: 6,
-                padding: "9px 16px", borderRadius: 10, fontSize: 13,
-                background: SA.warningBg, color: SA.warning, border: `1.5px solid #fde68a`,
-                cursor: "pointer", fontFamily: "inherit", fontWeight: 500,
-              }}
-            >
-              <Clock size={14} />3 Pending
+    <div style={{ minHeight: "100vh", background: C.bgPage, padding: "24px" }}>
+      {/* Header */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+          <div>
+            <h1 style={{ fontSize: 24, fontWeight: 700, color: C.text, letterSpacing: "-.02em", margin: 0 }}>Platform Overview</h1>
+            <p style={{ fontSize: 13, color: C.faint, marginTop: 4 }}>Monitor all clinics, revenue, and system health</p>
+          </div>
+          <div style={{ display: "flex", gap: 12 }}>
+            <button onClick={() => navigate("/admin/pending")} style={{
+              display: "flex", alignItems: "center", gap: 6, padding: "8px 16px",
+              background: C.amberBg, border: `1px solid ${C.amberBorder}`, borderRadius: 10,
+              fontSize: 12, fontWeight: 600, color: C.amberText, cursor: "pointer",
+            }}>
+              <Clock size={14} /> {stats.pendingClinics} Pending
             </button>
-            <button
-              onClick={() => navigate("/admin/clinics")}
-              style={{
-                display: "flex", alignItems: "center", gap: 6,
-                padding: "9px 18px", borderRadius: 10, fontSize: 13,
-                background: SA.accent, color: "white", border: "none",
-                cursor: "pointer", fontFamily: "inherit", fontWeight: 500,
-              }}
-            >
-              <Building2 size={14} />All Clinics
+            <button onClick={() => navigate("/admin/clinics")} style={{
+              display: "flex", alignItems: "center", gap: 6, padding: "8px 18px",
+              background: C.teal, border: "none", borderRadius: 10,
+              fontSize: 12, fontWeight: 600, color: "white", cursor: "pointer",
+            }}>
+              <Building2 size={14} /> All Clinics
             </button>
           </div>
-        }
-      />
-
-      {/* Stat Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 20, marginBottom: 28 }}>
-        {STATS.map((s) => <StatCard key={s.label} {...s} />)}
+        </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 20, marginBottom: 20 }}>
+      {/* KPI Row */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
+        <KpiCard label="Total Clinics" value={stats.totalClinics} trend={`${stats.activeClinics} active`} trendUp icon={Building2} color={C.teal} bg={C.tealBg} />
+        <KpiCard label="Total Patients" value={stats.totalPatients.toLocaleString()} trend="across network" trendUp icon={Users} color={C.blue} bg={C.blueBg} />
+        <KpiCard label="Monthly Revenue" value={`$${stats.monthlyRevenue.toLocaleString()}`} trend={`+${growthData.growth}% vs last month`} trendUp icon={DollarSign} color={C.amber} bg={C.amberBg} />
+        <KpiCard label="Active Subscriptions" value={stats.activeSubscriptions} trend={`${stats.trialClinics} on trial`} trendUp icon={Activity} color={C.purple} bg={C.purpleBg} />
+      </div>
+
+      {/* Row 2 */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 16, marginBottom: 24 }}>
         {/* Recent Clinics */}
         <Card>
-          <SectionTitle
-            title="Recently Joined Clinics"
-            action={
-              <button onClick={() => navigate("/admin/clinics")} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: SA.accent, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
-                View all <ArrowRight size={12} />
-              </button>
-            }
-          />
-          <div style={{ padding: "8px 0" }}>
-            {RECENT_CLINICS.map((c) => (
-              <div key={c.id} className="sa-row-hover" style={{ display: "grid", gridTemplateColumns: "1fr 80px 80px 60px 60px", alignItems: "center", padding: "12px 20px", cursor: "pointer" }} onClick={() => navigate(`/admin/clinics/${c.id}`)}>
+          <SectionHead title="Recently Joined Clinics" icon={Building2} action={{ label: "View all", onClick: () => navigate("/admin/clinics") }} />
+          <div>
+            {recentClinics.map((c, i) => (
+              <div key={c.id} onClick={() => navigate(`/admin/clinics/${c.id}`)} style={{
+                display: "grid", gridTemplateColumns: "1fr 80px 80px 60px",
+                padding: "12px 18px", borderBottom: i < recentClinics.length - 1 ? `1px solid ${C.border}` : "none",
+                cursor: "pointer", alignItems: "center",
+              }}>
                 <div>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: SA.textPrimary, margin: 0 }}>{c.name}</p>
-                  <p style={{ fontSize: 12, color: SA.textSecondary, margin: "2px 0 0" }}>{c.city}</p>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{c.name}</p>
+                  <p style={{ fontSize: 11, color: C.faint, marginTop: 1 }}>{c.city}</p>
                 </div>
-                <Badge label={c.plan} variant={planVariant(c.plan)} />
-                <Badge label={c.status} variant={statusVariant(c.status)} />
-                <span style={{ fontSize: 12, color: SA.textSecondary }}>{c.users} users</span>
-                <span style={{ fontSize: 12, color: SA.textMuted }}>{c.joined}</span>
+                <Badge label={c.plan} color={c.plan === "Enterprise" ? "purple" : c.plan === "Pro" ? "green" : "blue"} />
+                <Badge label={c.status} color={c.status === "active" ? "green" : "amber"} />
+                <span style={{ fontSize: 11, color: C.faint }}>{c.joined}</span>
               </div>
             ))}
           </div>
@@ -115,120 +340,112 @@ export default function SuperAdminDashboard() {
 
         {/* Plan Distribution */}
         <Card>
-          <SectionTitle title="Plan Distribution" />
+          <SectionHead title="Plan Distribution" icon={Rocket} />
           <div style={{ padding: "20px" }}>
-            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", marginBottom: 24 }}>
-              <div style={{ position: "relative", width: 140, height: 140 }}>
-                <svg viewBox="0 0 140 140" style={{ transform: "rotate(-90deg)", width: 140, height: 140 }}>
-                  {(() => {
-                    let offset = 0;
-                    const r = 55;
-                    const circ = 2 * Math.PI * r;
-                    return PLAN_DIST.map((p) => {
-                      const dash = (p.pct / 100) * circ;
-                      const gap = circ - dash;
-                      const el = (
-                        <circle key={p.plan} cx={70} cy={70} r={r}
-                          fill="none" stroke={p.color} strokeWidth={18}
-                          strokeDasharray={`${dash} ${gap}`}
-                          strokeDashoffset={-offset * circ / 100}
-                          style={{ transition: "all 0.5s ease" }}
-                        />
-                      );
-                      offset += p.pct;
-                      return el;
-                    });
-                  })()}
-                </svg>
-                <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                  <p style={{ fontSize: 24, fontWeight: 700, color: SA.textPrimary, margin: 0 }}>142</p>
-                  <p style={{ fontSize: 11, color: SA.textMuted }}>Clinics</p>
-                </div>
-              </div>
-            </div>
-            {PLAN_DIST.map((p) => (
-              <div key={p.plan} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${SA.border}` }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ width: 10, height: 10, borderRadius: "50%", background: p.color }} />
-                  <span style={{ fontSize: 13, color: SA.textPrimary }}>{p.plan}</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ width: 80, height: 6, borderRadius: 3, background: "#f1f5f9", overflow: "hidden" }}>
-                    <div style={{ width: `${p.pct}%`, height: "100%", background: p.color, borderRadius: 3, transition: "width 0.5s ease" }} />
-                  </div>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: SA.textSecondary, minWidth: 30, textAlign: "right" }}>{p.count}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
-
-      {/* Activity Feed + Quick Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-        <Card>
-          <SectionTitle title="Recent Activity" />
-          <div style={{ padding: "8px 0" }}>
-            {ACTIVITY.map((a) => (
-              <div key={a.id} className="sa-row-hover" style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 20px" }}>
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: `${a.color}18`, display: "flex", alignItems: "center", justifyContent: "center", color: a.color, flexShrink: 0 }}>
-                  {a.icon}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 13, color: SA.textPrimary, margin: 0, lineHeight: 1.4 }}>{a.text}</p>
-                  <p style={{ fontSize: 11, color: SA.textMuted, marginTop: 2 }}>{a.time}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        {/* Health + Quick Links */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          <Card>
-            <SectionTitle title="System Health" />
-            <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
-              {[
-                { label: "API Response Time", value: "142ms", status: "good" },
-                { label: "DB Connections", value: "87 / 200", status: "good" },
-                { label: "Storage Used", value: "61%", status: "warning" },
-                { label: "Failed Jobs (24h)", value: "2", status: "good" },
-              ].map((h) => (
-                <div key={h.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <DonutChart size={80} segments={planDistribution.map(p => ({ color: p.color, value: p.count, label: p.plan }))} />
+            <div style={{ marginTop: 16 }}>
+              {planDistribution.map(p => (
+                <div key={p.plan} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 0" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    {h.status === "good"
-                      ? <CheckCircle2 size={14} color={SA.success} />
-                      : <AlertTriangle size={14} color={SA.warning} />}
-                    <span style={{ fontSize: 13, color: SA.textPrimary }}>{h.label}</span>
+                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: p.color }} />
+                    <span style={{ fontSize: 12, color: C.text }}>{p.plan}</span>
                   </div>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: h.status === "good" ? SA.textPrimary : SA.warning }}>{h.value}</span>
+                  <span style={{ fontSize: 12, fontWeight: 600 }}>{p.count}</span>
                 </div>
               ))}
             </div>
-          </Card>
-
-          <Card>
-            <SectionTitle title="Quick Actions" />
-            <div style={{ padding: "12px 16px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {[
-                { label: "Approve Clinics", icon: <CheckCircle2 size={14} />, path: "/admin/pending", color: SA.success },
-                { label: "View Reports", icon: <BarChart3 size={14} />, path: "/admin/reports/revenue", color: SA.info },
-                { label: "Manage Users", icon: <Users size={14} />, path: "/admin/users", color: SA.accent },
-                { label: "Audit Log", icon: <Shield size={14} />, path: "/admin/audit", color: SA.warning },
-              ].map((q) => (
-                <button key={q.label} onClick={() => navigate(q.path)} style={{
-                  display: "flex", alignItems: "center", gap: 8, padding: "10px 12px",
-                  background: SA.bg, border: `1px solid ${SA.border}`, borderRadius: 10,
-                  fontSize: 12, fontWeight: 500, color: SA.textPrimary,
-                  cursor: "pointer", fontFamily: "inherit",
-                }}>
-                  <span style={{ color: q.color }}>{q.icon}</span>{q.label}
-                </button>
-              ))}
-            </div>
-          </Card>
-        </div>
+          </div>
+        </Card>
       </div>
-    </PageWrapper>
+
+      {/* Row 3 */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
+        {/* Revenue Card */}
+        <Card>
+          <SectionHead title="Revenue Overview" icon={TrendingUp} iconColor={C.teal} action={{ label: "View reports", onClick: () => navigate("/admin/reports") }} />
+          <div style={{ padding: "18px" }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 16 }}>
+              <span style={{ fontSize: 28, fontWeight: 700, color: C.text }}>${growthData.revenue.toLocaleString()}</span>
+              <span style={{ fontSize: 12, color: C.tealText }}>↑ {growthData.growth}%</span>
+            </div>
+            <div style={{ height: 80, display: "flex", alignItems: "flex-end", gap: 8 }}>
+              {[8200, 9400, 8700, 11200, 10500, growthData.mrr || 12480].map((val, i) => {
+                const maxVal = Math.max(...[8200, 9400, 8700, 11200, 10500, growthData.mrr || 12480]);
+                const isLast = i === 5;
+                return (
+                  <div key={i} style={{ flex: 1, textAlign: "center" }}>
+                    <div style={{
+                      height: `${(val / maxVal) * 60}px`,
+                      background: isLast ? C.teal : C.tealBorder,
+                      borderRadius: "4px 4px 0 0", marginBottom: 6,
+                    }} />
+                    <span style={{ fontSize: 9, color: isLast ? C.teal : C.faint, fontWeight: isLast ? 700 : 400 }}>
+                      {["Aug", "Sep", "Oct", "Nov", "Dec", "Jan"][i]}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </Card>
+
+        {/* Activity Feed */}
+        <Card>
+          <SectionHead title="Recent Activity" icon={Bell} iconColor={C.purple} />
+          <div style={{ padding: "12px 18px" }}>
+            {recentActivity.length === 0 ? (
+              <div style={{ textAlign: "center", padding: 32 }}>
+                <CheckCircle2 size={32} color={C.teal} style={{ margin: "0 auto 8px", display: "block" }} />
+                <p style={{ fontSize: 13, color: C.faint }}>No recent activity</p>
+              </div>
+            ) : (
+              recentActivity.map((a, i) => (
+                <div key={a.id} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "8px 0", borderBottom: i < recentActivity.length - 1 ? `1px solid ${C.border}` : "none" }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 7, background: C.tealBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Activity size={12} color={C.teal} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 12, fontWeight: 500, color: C.text }}>{a.text}</p>
+                    <p style={{ fontSize: 10, color: C.faint, marginTop: 1 }}>{a.time}</p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </Card>
+      </div>
+
+      {/* Row 4 - Quick Actions */}
+      <Card>
+        <SectionHead title="Quick Actions" icon={MoreHorizontal} iconColor={C.muted} />
+        <div style={{ padding: "16px 18px", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+          {[
+            { label: "Approve Clinics", icon: CheckCircle2, path: "/admin/pending", color: C.teal },
+            { label: "View Reports", icon: BarChart3, path: "/admin/reports/revenue", color: C.blue },
+            { label: "Manage Staff", icon: Users, path: "/admin/users", color: C.purple },
+            { label: "Audit Log", icon: Shield, path: "/admin/audit", color: C.amber },
+            { label: "System Health", icon: Server, path: "/admin/health", color: C.red },
+            { label: "Subscriptions", icon: CreditCard, path: "/admin/subscriptions", color: C.teal },
+            { label: "Global Settings", icon: Settings, path: "/admin/settings", color: C.faint },
+            { label: "Support Tickets", icon: Bell, path: "/admin/tickets", color: C.blue },
+          ].map((action) => (
+            <button
+              key={action.label}
+              onClick={() => navigate(action.path)}
+              style={{
+                display: "flex", alignItems: "center", gap: 8, padding: "10px 12px",
+                background: action.color + "08", border: `1px solid ${action.color}20`, borderRadius: 10,
+                cursor: "pointer", fontFamily: "inherit", transition: "all .15s",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = action.color + "15"; e.currentTarget.style.borderColor = action.color + "40"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = action.color + "08"; e.currentTarget.style.borderColor = action.color + "20"; }}
+            >
+              <action.icon size={14} color={action.color} />
+              <span style={{ fontSize: 12, fontWeight: 500, color: C.text }}>{action.label}</span>
+            </button>
+          ))}
+        </div>
+      </Card>
+    </div>
   );
 }

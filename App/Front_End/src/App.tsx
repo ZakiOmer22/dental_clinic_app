@@ -119,6 +119,7 @@ import SupportTicketsPage from "./pages/superAdmin/Support";
 import { PlatformSettingsPage } from "./pages/superAdmin/Settings";
 import PaymentsPage from "./pages/superAdmin/Payments";
 import AuditLogPage from "./pages/superAdmin/AuditLog";
+import BillingHistoryPage from "./pages/superAdmin/Settings/BillingHistoryPage";
 
 // ─── Waits for Zustand to finish reading localStorage before deciding ──────────
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -200,6 +201,7 @@ export default function App() {
         <Route path="admin/support" element={<SupportTicketsPage />} />
         <Route path="admin/settings" element={<PlatformSettingsPage />} />
         <Route path="admin/audit" element={<AuditLogPage />} />
+        <Route path="admin/billing/history" element={<BillingHistoryPage />} />
 
         {/* Admin Routes */}
         <Route path="patients" element={<PatientsPage />} />

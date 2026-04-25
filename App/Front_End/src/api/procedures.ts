@@ -1,8 +1,8 @@
-// ─────────────────────────────────────────────────────────────
-// src/api/procedures.ts (CLEAN + SECURE)
-// ─────────────────────────────────────────────────────────────
-
 import client from "./client";
+
+const API_PREFIX = import.meta.env.VITE_API_VERSION
+  ? `/api/${import.meta.env.VITE_API_VERSION}`
+  : "";
 
 export interface Procedure {
   id: number;
@@ -43,61 +43,65 @@ export interface CreateProcedureData {
   requires_lab?: boolean;
 }
 
-// ─── Core CRUD ──────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// CORE CRUD
+// ─────────────────────────────────────────────
 
 export const apiGetProcedures = async (
   params?: ProcedureFilters
 ): Promise<ProcedureListResponse> => {
-  const res = await client.get("/procedures", { params });
-  return res.data;
+  return (
+    await client.get(`${API_PREFIX}/procedures`, { params })
+  ).data;
 };
 
 export const apiGetProcedure = async (id: number): Promise<Procedure> => {
-  const res = await client.get(`/procedures/${id}`);
-  return res.data;
+  return (await client.get(`${API_PREFIX}/procedures/${id}`)).data;
 };
 
 export const apiCreateProcedure = async (
   data: CreateProcedureData
 ): Promise<Procedure> => {
-  const res = await client.post("/procedures", data);
-  return res.data;
+  return (await client.post(`${API_PREFIX}/procedures`, data)).data;
 };
 
 export const apiUpdateProcedure = async (
   id: number,
   data: Partial<CreateProcedureData>
 ): Promise<Procedure> => {
-  const res = await client.put(`/procedures/${id}`, data);
-  return res.data;
+  return (
+    await client.put(`${API_PREFIX}/procedures/${id}`, data)
+  ).data;
 };
 
 export const apiDeleteProcedure = async (
   id: number
 ): Promise<{ ok: boolean }> => {
-  const res = await client.delete(`/procedures/${id}`);
-  return res.data;
+  return (await client.delete(`${API_PREFIX}/procedures/${id}`)).data;
 };
 
-// ─── Additional features ────────────────────────────────────
+// ─────────────────────────────────────────────
+// EXTRA FEATURES
+// ─────────────────────────────────────────────
 
 export const apiGetProceduresByCategory = async (
   category: string
 ): Promise<Procedure[]> => {
-  const res = await client.get(`/procedures/category/${category}`);
-  return res.data;
+  return (
+    await client.get(`${API_PREFIX}/procedures/category/${category}`)
+  ).data;
 };
 
 export const apiGetProcedureCategories = async (): Promise<string[]> => {
-  const res = await client.get("/procedures/categories");
-  return res.data;
+  return (await client.get(`${API_PREFIX}/procedures/categories`)).data;
 };
 
 export const apiToggleProcedureStatus = async (
   id: number
 ): Promise<Procedure> => {
-  const res = await client.patch(`/procedures/${id}/toggle`);
-  return res.data;
+  return (
+    await client.patch(`${API_PREFIX}/procedures/${id}/toggle`)
+  ).data;
 };
 
 export const apiGetProcedureStats = async (): Promise<{
@@ -106,15 +110,17 @@ export const apiGetProcedureStats = async (): Promise<{
   inactive: number;
   by_category: Record<string, number>;
 }> => {
-  const res = await client.get("/procedures/stats/summary");
-  return res.data;
+  return (
+    await client.get(`${API_PREFIX}/procedures/stats/summary`)
+  ).data;
 };
 
 export const apiBulkImportProcedures = async (
   procedures: CreateProcedureData[]
 ): Promise<{ success: boolean; inserted: number }> => {
-  const res = await client.post("/procedures/bulk-import", {
-    procedures,
-  });
-  return res.data;
+  return (
+    await client.post(`${API_PREFIX}/procedures/bulk-import`, {
+      procedures,
+    })
+  ).data;
 };

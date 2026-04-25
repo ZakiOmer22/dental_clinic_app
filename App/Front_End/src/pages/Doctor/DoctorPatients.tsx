@@ -207,10 +207,14 @@ function Modal({ open, onClose, title, children, wide }: { open: boolean; onClos
 }
 // ─── Appointment Status Card ──────────────────────────────────────────────────
 function TodayAppointments() {
-  const { data: appointments, isLoading } = useQuery({
+  const { data: appointmentsRes, isLoading } = useQuery({
     queryKey: ["today-appointments"],
     queryFn: () => apiGetAppointments(),
   });
+
+  const appointments: any[] = Array.isArray(appointmentsRes) 
+    ? appointmentsRes 
+    : (appointmentsRes as any)?.data ?? [];
 
   const stats = useMemo(() => {
     const total = appointments?.length || 0;

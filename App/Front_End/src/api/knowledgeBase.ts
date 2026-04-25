@@ -1,5 +1,9 @@
 import client from "./client";
 
+const API_PREFIX = import.meta.env.VITE_API_VERSION
+  ? `/api/${import.meta.env.VITE_API_VERSION}`
+  : "";
+
 // ─────────────────────────────
 // TYPES
 // ─────────────────────────────
@@ -30,45 +34,37 @@ export interface CreateArticleData {
 // ─────────────────────────────
 
 export const apiGetArticles = async () => {
-  const res = await client.get("/knowledge-base/articles");
-  return res.data;
+  return (await client.get(`${API_PREFIX}/knowledge-base/articles`)).data;
 };
 
 export const apiGetArticle = async (id: number) => {
-  const res = await client.get(`/knowledge-base/articles/${id}`);
-  return res.data;
+  return (await client.get(`${API_PREFIX}/knowledge-base/articles/${id}`)).data;
 };
 
 export const apiIncrementViews = async (id: number) => {
-  const res = await client.post(`/knowledge-base/articles/${id}/views`);
-  return res.data;
+  return (await client.post(`${API_PREFIX}/knowledge-base/articles/${id}/views`)).data;
 };
 
 export const apiMarkHelpful = async (id: number) => {
-  const res = await client.post(`/knowledge-base/articles/${id}/helpful`);
-  return res.data;
+  return (await client.post(`${API_PREFIX}/knowledge-base/articles/${id}/helpful`)).data;
 };
 
 // ─────────────────────────────
-// ADMIN ENDPOINTS (PROTECTED VIA JWT CLIENT)
+// ADMIN ENDPOINTS
 // ─────────────────────────────
 
 export const apiCreateArticle = async (data: CreateArticleData) => {
-  const res = await client.post("/knowledge-base/admin/articles", data);
-  return res.data;
+  return (await client.post(`${API_PREFIX}/knowledge-base/admin/articles`, data)).data;
 };
 
 export const apiUpdateArticle = async (id: number, data: Partial<CreateArticleData>) => {
-  const res = await client.put(`/knowledge-base/admin/articles/${id}`, data);
-  return res.data;
+  return (await client.put(`${API_PREFIX}/knowledge-base/admin/articles/${id}`, data)).data;
 };
 
 export const apiDeleteArticle = async (id: number) => {
-  const res = await client.delete(`/knowledge-base/admin/articles/${id}`);
-  return res.data;
+  return (await client.delete(`${API_PREFIX}/knowledge-base/admin/articles/${id}`)).data;
 };
 
 export const apiGetAllArticlesAdmin = async () => {
-  const res = await client.get("/knowledge-base/admin/articles");
-  return res.data;
+  return (await client.get(`${API_PREFIX}/knowledge-base/admin/articles`)).data;
 };

@@ -190,12 +190,11 @@ export default function Topbar() {
     }
   }, [showSearch]);
 
-  const fetchUnreadCount = async () => {
+    const fetchUnreadCount = async () => {
     try {
-      const response = await apiClient.get('/notifications/unread-count');
-      setUnreadCount(response.data?.count || 0);
+      const response = await apiClient.get('/api/v1/notifications/unread-count');
+      setUnreadCount(response.data?.data?.count ?? response.data?.count ?? 0);
     } catch (error) {
-      // Silently fail - don't show error for background fetch
       console.debug("Failed to fetch unread count:", error);
     }
   };
@@ -203,19 +202,17 @@ export default function Topbar() {
   const fetchNotifications = async () => {
     setLoadingNotifications(true);
     try {
-      const response = await apiClient.get('/notifications', {
+      const response = await apiClient.get('/api/v1/notifications', {
         params: { limit: 20 }
       });
       
       const data = response.data?.data || response.data || [];
       setNotifications(data);
       
-      // Update unread count
       const unread = data.filter((n: Notification) => !n.is_read).length;
       setUnreadCount(unread);
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
-      // Don't show toast - just keep empty state
     } finally {
       setLoadingNotifications(false);
     }

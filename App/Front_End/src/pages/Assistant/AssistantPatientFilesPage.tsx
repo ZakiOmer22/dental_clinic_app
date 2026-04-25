@@ -487,7 +487,7 @@ export default function AssistantPatientFilesPage() {
     enabled: !!selectedPatient && showFiles,
   });
   
-  const files = filesData?.data || filesData || [];
+  const files = Array.isArray(filesData?.data?.data) ? filesData.data.data : Array.isArray(filesData?.data) ? filesData.data : Array.isArray(filesData) ? filesData : [];
   
   // Filter files
   const filteredFiles = React.useMemo(() => {

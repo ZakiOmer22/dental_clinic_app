@@ -1,5 +1,9 @@
 import client from "./client";
 
+const API_PREFIX = import.meta.env.VITE_API_VERSION
+  ? `/api/${import.meta.env.VITE_API_VERSION}`
+  : "";
+
 export interface InventoryItem {
   id: number;
   name: string;
@@ -19,44 +23,28 @@ export interface InventoryTransaction {
   created_at?: string;
 }
 
-// ─────────────────────────────
-// INVENTORY ITEMS
-// ─────────────────────────────
+// ITEMS
 
 export const apiGetInventory = async (params?: any) => {
-  const res = await client.get("/inventory", { params });
-  return res.data;
+  return (await client.get(`${API_PREFIX}/inventory`, { params })).data;
 };
 
 export const apiCreateInventoryItem = async (data: Partial<InventoryItem>) => {
-  const res = await client.post("/inventory", data);
-  return res.data;
+  return (await client.post(`${API_PREFIX}/inventory`, data)).data;
 };
 
-export const apiUpdateInventoryItem = async (
-  id: number,
-  data: Partial<InventoryItem>
-) => {
-  const res = await client.put(`/inventory/${id}`, data);
-  return res.data;
+export const apiUpdateInventoryItem = async (id: number, data: Partial<InventoryItem>) => {
+  return (await client.put(`${API_PREFIX}/inventory/${id}`, data)).data;
 };
 
-// ─────────────────────────────
 // ALERTS
-// ─────────────────────────────
 
 export const apiGetLowStock = async () => {
-  const res = await client.get("/inventory/alerts");
-  return res.data;
+  return (await client.get(`${API_PREFIX}/inventory/alerts`)).data;
 };
 
-// ─────────────────────────────
 // TRANSACTIONS
-// ─────────────────────────────
 
-export const apiRecordInventoryTransaction = async (
-  data: InventoryTransaction
-) => {
-  const res = await client.post("/inventory/transaction", data);
-  return res.data;
+export const apiRecordInventoryTransaction = async (data: InventoryTransaction) => {
+  return (await client.post(`${API_PREFIX}/inventory/transaction`, data)).data;
 };

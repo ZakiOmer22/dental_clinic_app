@@ -152,17 +152,20 @@ export default function ReceptionistPatientProfilePage() {
   const [tab,setTab]=useState<Tab>("overview");
 
   const {data:patient,isLoading}=useQuery({queryKey:["patient",patientId],queryFn:()=>apiGetPatient(patientId),enabled:!!patientId});
-  const {data:history}=useQuery({queryKey:["patient-history",patientId],queryFn:()=>apiGetPatientHistory(patientId),enabled:tab==="history"});
-  const {data:balance}=useQuery({queryKey:["patient-balance",patientId],queryFn:()=>apiGetPatientBalance(patientId),enabled:!!patientId});
+  const {data:historyRaw}=useQuery({queryKey:["patient-history",patientId],queryFn:()=>apiGetPatientHistory(patientId),enabled:tab==="history"});
+  const {data:balanceRaw}=useQuery({queryKey:["patient-balance",patientId],queryFn:()=>apiGetPatientBalance(patientId),enabled:!!patientId});
   const {data:filesRaw}=useQuery({queryKey:["patient-files",patientId],queryFn:()=>apiGetPatientFiles(patientId),enabled:tab==="files"});
 
   if(isLoading)return <div style={{padding:"60px 0",textAlign:"center",color:C.faint,fontSize:13}}>Loading patient…</div>;
   if(!patient) return <div style={{padding:"60px 0",textAlign:"center",color:C.faint,fontSize:13}}>Patient not found.</div>;
 
-  const p=patient as any;
-  const visits:any[]=history?.visits??history?.data??[];
-  const invoices:any[]=(balance as any)?.invoices??(balance as any)?.data??[];
-  const files:any[]=Array.isArray(filesRaw)?filesRaw:(filesRaw as any)?.data??[];
+  const patientResp = patient as any;
+  const p = patientResp?.data?.patient ?? patientResp?.patient ?? patientResp;
+  const files:any[]=Array.isArray(filesRaw)?filesRaw:(filesRaw as any)?.data?.data ?? (filesRaw as any)?.data ?? [];
+  const historyData = (historyRaw as any)?.data ?? historyRaw;
+  const balanceData = (balanceRaw as any)?.data ?? balanceRaw;
+  const visits:any[] = Array.isArray(historyData?.visits) ? historyData.visits : Array.isArray(historyData?.data) ? historyData.data : Array.isArray(historyData) ? historyData : [];
+  const invoices:any[] = Array.isArray(balanceData?.invoices) ? balanceData.invoices : Array.isArray(balanceData?.data) ? balanceData.data : [];
 
   const tabs:[Tab,string,any][]=[
     ["overview","Overview",User],
@@ -237,7 +240,7 @@ export default function ReceptionistPatientProfilePage() {
         </div>
 
         {/* ── Balance cards ── */}
-        <BalanceCards balance={balance}/>
+        <BalanceCards balance={balanceData}/>
 
         {/* ── Tabbed card ── */}
         <div style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:14,overflow:"hidden"}}>

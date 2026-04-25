@@ -1,11 +1,13 @@
 import client from "./client";
 
+const API_PREFIX = import.meta.env.VITE_API_VERSION
+  ? `/api/${import.meta.env.VITE_API_VERSION}`
+  : "";
+
 export const apiGetClinic = async () => {
-  const res = await client.get("/settings/clinic");
-  return res.data;
+  return (await client.get(`${API_PREFIX}/settings/clinic`)).data;
 };
 
 export const apiUpdateClinic = async (data: any) => {
-  const res = await client.put("/settings/clinic", data);
-  return res.data;
+  return (await client.put(`${API_PREFIX}/settings/clinic`, data)).data;
 };

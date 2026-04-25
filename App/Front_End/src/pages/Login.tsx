@@ -6,8 +6,8 @@ import { useAuthStore } from "@/app/store";
 import toast from "react-hot-toast";
 
 // ─── App name from .env ───────────────────────────────────────────────────────
-const APP_NAME = import.meta.env.VITE_APP_NAME ?? "Dental Clinic Portal";
-const SITE_NAME = import.meta.env.VITE_SITE_NAME ?? "clinics.ealif";
+const APP_NAME = "Daryeel App";
+const SITE_NAME = import.meta.env.VITE_SITE_NAME ?? "daryeel.ealif";
 
 // ─── Role-based demo credentials ──────────────────────────────────────────────
 const DEMO_CREDENTIALS = [

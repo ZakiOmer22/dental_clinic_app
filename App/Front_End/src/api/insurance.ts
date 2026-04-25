@@ -1,5 +1,9 @@
 import client from "./client";
 
+const API_PREFIX = import.meta.env.VITE_API_VERSION
+  ? `/api/${import.meta.env.VITE_API_VERSION}`
+  : "";
+
 // ─────────────────────────────
 // TYPES
 // ─────────────────────────────
@@ -29,31 +33,23 @@ export interface InsuranceClaim {
 // ─────────────────────────────
 
 export const apiGetInsurancePolicies = async (params?: any) => {
-  const res = await client.get("/insurance/policies", { params });
-  return res.data;
+  return (await client.get(`${API_PREFIX}/insurance/policies`, { params })).data;
 };
 
 export const apiGetInsurancePolicy = async (id: number) => {
-  const res = await client.get(`/insurance/policies/${id}`);
-  return res.data;
+  return (await client.get(`${API_PREFIX}/insurance/policies/${id}`)).data;
 };
 
 export const apiCreateInsurancePolicy = async (data: Partial<InsurancePolicy>) => {
-  const res = await client.post("/insurance/policies", data);
-  return res.data;
+  return (await client.post(`${API_PREFIX}/insurance/policies`, data)).data;
 };
 
-export const apiUpdateInsurancePolicy = async (
-  id: number,
-  data: Partial<InsurancePolicy>
-) => {
-  const res = await client.put(`/insurance/policies/${id}`, data);
-  return res.data;
+export const apiUpdateInsurancePolicy = async (id: number, data: Partial<InsurancePolicy>) => {
+  return (await client.put(`${API_PREFIX}/insurance/policies/${id}`, data)).data;
 };
 
 export const apiDeleteInsurancePolicy = async (id: number) => {
-  const res = await client.delete(`/insurance/policies/${id}`);
-  return res.data;
+  return (await client.delete(`${API_PREFIX}/insurance/policies/${id}`)).data;
 };
 
 // ─────────────────────────────
@@ -61,31 +57,23 @@ export const apiDeleteInsurancePolicy = async (id: number) => {
 // ─────────────────────────────
 
 export const apiGetInsuranceClaims = async (params?: any) => {
-  const res = await client.get("/insurance/claims", { params });
-  return res.data;
+  return (await client.get(`${API_PREFIX}/insurance/claims`, { params })).data;
 };
 
 export const apiGetInsuranceClaim = async (id: number) => {
-  const res = await client.get(`/insurance/claims/${id}`);
-  return res.data;
+  return (await client.get(`${API_PREFIX}/insurance/claims/${id}`)).data;
 };
 
 export const apiCreateInsuranceClaim = async (data: Partial<InsuranceClaim>) => {
-  const res = await client.post("/insurance/claims", data);
-  return res.data;
+  return (await client.post(`${API_PREFIX}/insurance/claims`, data)).data;
 };
 
-export const apiUpdateInsuranceClaim = async (
-  id: number,
-  data: Partial<InsuranceClaim>
-) => {
-  const res = await client.put(`/insurance/claims/${id}`, data);
-  return res.data;
+export const apiUpdateInsuranceClaim = async (id: number, data: Partial<InsuranceClaim>) => {
+  return (await client.put(`${API_PREFIX}/insurance/claims/${id}`, data)).data;
 };
 
 export const apiDeleteInsuranceClaim = async (id: number) => {
-  const res = await client.delete(`/insurance/claims/${id}`);
-  return res.data;
+  return (await client.delete(`${API_PREFIX}/insurance/claims/${id}`)).data;
 };
 
 // ─────────────────────────────
@@ -93,12 +81,11 @@ export const apiDeleteInsuranceClaim = async (id: number) => {
 // ─────────────────────────────
 
 export const apiSubmitInsuranceClaim = async (id: number) => {
-  const res = await client.patch(`/insurance/claims/${id}/submit`);
-  return res.data;
+  return (await client.patch(`${API_PREFIX}/insurance/claims/${id}/submit`)).data;
 };
 
 // ─────────────────────────────
-// VALIDATION (IMPORTANT SECURITY FIX)
+// VALIDATION
 // ─────────────────────────────
 
 export const apiValidateInsuranceCoverage = async (data: {
@@ -106,6 +93,5 @@ export const apiValidateInsuranceCoverage = async (data: {
   procedureCode: string;
   amount: number;
 }) => {
-  const res = await client.post("/insurance/validate-coverage", data);
-  return res.data;
+  return (await client.post(`${API_PREFIX}/insurance/validate-coverage`, data)).data;
 };

@@ -1,165 +1,242 @@
-import { useState } from "react";
-import { Clock, CheckCircle2, XCircle, Eye, Building2, Mail, Phone, MapPin, User, Calendar } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Clock, CheckCircle2, XCircle, Building2, Mail, Phone, MapPin, User, Calendar, ChevronRight } from "lucide-react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
-import { PageWrapper, PageHeader, Card, Badge, Btn, SectionTitle, SA, EmptyState } from "./shared";
+import { useAuthStore } from "@/app/store";
 
-const PENDING = [
-  {
-    id: 4, name: "DentaCare Plus", city: "Kismayo", country: "Somalia",
-    plan: "Pro", email: "owner@dentacareplus.so", phone: "+252 69 9876543",
-    contactPerson: "Dr. Mahad Ali", address: "Main Street, Kismayo",
-    submittedAt: "Apr 10, 2025 · 09:32 AM", notes: "Large clinic with 3 branches planned",
-    requestedUsers: 12, website: "dentacareplus.so",
-  },
-  {
-    id: 9, name: "OralCare Hub", city: "Dubai", country: "UAE",
-    plan: "Enterprise", email: "admin@oralcare.ae", phone: "+971 50 1234567",
-    contactPerson: "Dr. Faisal Al-Rashidi", address: "Healthcare City, Dubai",
-    submittedAt: "Apr 9, 2025 · 02:15 PM", notes: "High volume clinic, needs fast activation",
-    requestedUsers: 30, website: "oralcare.ae",
-  },
-  {
-    id: 10, name: "Nairobi Smiles", city: "Nairobi", country: "Kenya",
-    plan: "Starter", email: "info@nairobiesmiles.ke", phone: "+254 722 123456",
-    contactPerson: "Dr. Amina Wanjiku", address: "Westlands, Nairobi",
-    submittedAt: "Apr 8, 2025 · 11:50 AM", notes: "",
-    requestedUsers: 4, website: "",
-  },
-];
+// ─── Design tokens (matching dashboard) ──────────────────────────────────────
+const C = {
+  border:    "#e5eae8",
+  bg:        "#ffffff",
+  bgPage:    "#f0f2f1",
+  bgMuted:   "#f7f9f8",
+  text:      "#111816",
+  muted:     "#7a918b",
+  faint:     "#a0b4ae",
+  teal:      "#0d9e75",
+  tealBg:    "#e8f7f2",
+  tealText:  "#0a7d5d",
+  tealBorder:"#c3e8dc",
+  amber:     "#f59e0b",
+  amberBg:   "#fffbeb",
+  amberText: "#92400e",
+  amberBorder:"#fde68a",
+  red:       "#e53e3e",
+  redBg:     "#fff5f5",
+  redText:   "#c53030",
+  redBorder: "#fed7d7",
+  blue:      "#3b82f6",
+  blueBg:    "#eff6ff",
+  blueText:  "#1d4ed8",
+  purple:    "#8b5cf6",
+  purpleBg:  "#f5f3ff",
+  purpleText:"#5b21b6",
+};
+
+function Badge({ label, color }: { label: string; color: "green" | "amber" | "red" | "blue" | "gray" | "purple" }) {
+  const map = {
+    green:  { bg: C.tealBg,   text: C.tealText,   border: C.tealBorder },
+    amber:  { bg: C.amberBg,  text: C.amberText,  border: C.amberBorder },
+    red:    { bg: C.redBg,    text: C.redText,    border: C.redBorder },
+    blue:   { bg: C.blueBg,   text: C.blueText,   border: "#bfdbfe" },
+    gray:   { bg: C.bgMuted,  text: C.muted,      border: C.border },
+    purple: { bg: C.purpleBg, text: C.purpleText, border: "#ddd6fe" },
+  }[color];
+  return (
+    <span style={{
+      fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 100,
+      background: map.bg, color: map.text, border: `1px solid ${map.border}`,
+      whiteSpace: "nowrap",
+    }}>
+      {label}
+    </span>
+  );
+}
+
+// API fetch helper
+const apiFetch = async (endpoint: string, token: string, options?: RequestInit) => {
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  const res = await fetch(`${baseUrl}/api/v1/admin${endpoint}`, {
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    credentials: 'include',
+    ...options,
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+};
 
 export default function PendingApprovalPage() {
   const navigate = useNavigate();
-  const [items, setItems] = useState(PENDING);
-  const [selected, setSelected] = useState<typeof PENDING[0] | null>(null);
+  const { token } = useAuthStore();
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
 
-  const approve = (id: number) => {
-    setItems((prev) => prev.filter((c) => c.id !== id));
-    setSelected(null);
-    toast.success("Clinic approved & activated!");
+  useEffect(() => {
+    const fetchPending = async () => {
+      if (!token) return;
+      try {
+        const data = await apiFetch('/clinics/pending', token);
+        const pending = (data.clinics || []).map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          city: c.city || 'N/A',
+          country: c.country || 'Somalia',
+          plan: c.plan_name || 'Basic',
+          email: c.email || c.admin_email || 'N/A',
+          phone: c.phone || 'N/A',
+          contactPerson: c.admin_name || 'Not assigned',
+          address: c.address || 'N/A',
+          submittedAt: new Date(c.created_at).toLocaleDateString(),
+          notes: c.notes || '',
+          requestedUsers: c.user_count || 0,
+        }));
+        setItems(pending);
+      } catch (err) {
+        toast.error('Failed to load pending approvals');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPending();
+  }, [token]);
+
+  const approve = async (id: number) => {
+    setActionLoading(id);
+    try {
+      await apiFetch(`/clinics/${id}/approve`, token!, { method: 'POST' });
+      setItems(prev => prev.filter(c => c.id !== id));
+      toast.success('Clinic approved!');
+    } catch (err) {
+      toast.error('Failed to approve');
+    } finally {
+      setActionLoading(null);
+    }
   };
 
-  const reject = (id: number) => {
-    setItems((prev) => prev.filter((c) => c.id !== id));
-    setSelected(null);
-    toast.error("Clinic application rejected");
+  const reject = async (id: number) => {
+    setActionLoading(id);
+    const reason = prompt('Rejection reason:');
+    try {
+      await apiFetch(`/clinics/${id}/reject`, token!, { method: 'POST', body: JSON.stringify({ reason: reason || 'Not specified' }) });
+      setItems(prev => prev.filter(c => c.id !== id));
+      toast.error('Clinic rejected');
+    } catch (err) {
+      toast.error('Failed to reject');
+    } finally {
+      setActionLoading(null);
+    }
   };
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', background: C.bgPage, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 40, height: 40, border: `3px solid ${C.border}`, borderTopColor: C.teal, borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
 
   return (
-    <PageWrapper>
-      <PageHeader
-        breadcrumb="Super Admin · Clinics"
-        title="Pending Approvals"
-        subtitle="Review and approve or reject new clinic registrations"
-        action={
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", background: SA.warningBg, border: `1px solid #fde68a`, borderRadius: 10 }}>
-            <Clock size={14} color={SA.warning} />
-            <span style={{ fontSize: 13, fontWeight: 600, color: SA.warning }}>{items.length} awaiting review</span>
+    <div style={{ minHeight: '100vh', background: C.bgPage, padding: '24px' }}>
+      {/* Header */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+          <div>
+            <h1 style={{ fontSize: 24, fontWeight: 700, color: C.text, margin: 0 }}>Pending Approvals</h1>
+            <p style={{ fontSize: 13, color: C.faint, marginTop: 4 }}>Review new clinic registrations</p>
           </div>
-        }
-      />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: C.amberBg, border: `1px solid ${C.amberBorder}`, borderRadius: 10 }}>
+            <Clock size={14} color={C.amber} />
+            <span style={{ fontSize: 13, fontWeight: 600, color: C.amberText }}>{items.length} awaiting review</span>
+          </div>
+        </div>
+      </div>
 
       {items.length === 0 ? (
-        <Card>
-          <EmptyState
-            icon={<CheckCircle2 size={40} />}
-            message="All caught up!"
-            sub="No clinics are currently pending approval"
-          />
-        </Card>
+        <div style={{ textAlign: 'center', padding: '80px 20px', background: C.bg, borderRadius: 20, border: `1px solid ${C.border}` }}>
+          <CheckCircle2 size={48} color={C.teal} style={{ margin: '0 auto 16px' }} />
+          <h3 style={{ fontSize: 18, fontWeight: 600, color: C.text, marginBottom: 8 }}>All caught up!</h3>
+          <p style={{ fontSize: 13, color: C.muted }}>No clinics are currently pending approval</p>
+        </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: selected ? "1fr 400px" : "1fr", gap: 20 }}>
-          {/* List */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {items.map((c) => (
-              <Card key={c.id} style={{ border: selected?.id === c.id ? `1.5px solid ${SA.accent}` : `1px solid ${SA.border}` }}>
-                <div style={{ padding: "20px 24px" }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 16 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                      <div style={{ width: 48, height: 48, borderRadius: 12, background: SA.accentLight, display: "flex", alignItems: "center", justifyContent: "center", color: SA.accent }}>
-                        <Building2 size={20} />
-                      </div>
-                      <div>
-                        <p style={{ fontSize: 15, fontWeight: 700, color: SA.textPrimary, margin: 0 }}>{c.name}</p>
-                        <p style={{ fontSize: 12, color: SA.textSecondary, margin: "3px 0 0" }}>
-                          {c.city}, {c.country} · Contact: {c.contactPerson}
-                        </p>
-                      </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {items.map((c) => (
+            <div key={c.id} style={{ background: C.bg, borderRadius: 16, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
+              <div style={{ padding: '20px 24px' }}>
+                {/* Row 1: Header */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 48, height: 48, borderRadius: 12, background: C.tealBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Building2 size={22} color={C.teal} />
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <Badge label={c.plan} variant={c.plan === "Enterprise" ? "success" : c.plan === "Pro" ? "purple" : "info"} />
-                      <Badge label="Pending" variant="warning" />
+                    <div>
+                      <p style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: 0 }}>{c.name}</p>
+                      <p style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{c.city}, {c.country} · Contact: {c.contactPerson}</p>
                     </div>
                   </div>
-
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16, padding: "12px", background: SA.bg, borderRadius: 10 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <Mail size={12} color={SA.textMuted} />
-                      <span style={{ fontSize: 12, color: SA.textSecondary, overflow: "hidden", textOverflow: "ellipsis" }}>{c.email}</span>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <Phone size={12} color={SA.textMuted} />
-                      <span style={{ fontSize: 12, color: SA.textSecondary }}>{c.phone}</span>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <User size={12} color={SA.textMuted} />
-                      <span style={{ fontSize: 12, color: SA.textSecondary }}>{c.requestedUsers} users requested</span>
-                    </div>
-                  </div>
-
-                  {c.notes && (
-                    <div style={{ padding: "10px 12px", background: "#fffbeb", border: `1px solid #fde68a`, borderRadius: 8, marginBottom: 16, fontSize: 12, color: "#92400e" }}>
-                      📝 {c.notes}
-                    </div>
-                  )}
-
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <Calendar size={12} color={SA.textMuted} />
-                      <span style={{ fontSize: 12, color: SA.textMuted }}>Submitted {c.submittedAt}</span>
-                    </div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <Btn label="View Details" variant="secondary" size="sm" icon={<Eye size={12} />} onClick={() => setSelected(selected?.id === c.id ? null : c)} />
-                      <Btn label="Reject" variant="danger" size="sm" icon={<XCircle size={12} />} onClick={() => reject(c.id)} />
-                      <Btn label="Approve" variant="success" size="sm" icon={<CheckCircle2 size={12} />} onClick={() => approve(c.id)} />
-                    </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <Badge label={c.plan} color={c.plan === 'Enterprise' ? 'purple' : c.plan === 'Pro' ? 'green' : 'blue'} />
+                    <Badge label="Pending" color="amber" />
                   </div>
                 </div>
-              </Card>
-            ))}
-          </div>
 
-          {/* Detail Panel */}
-          {selected && (
-            <Card style={{ position: "sticky", top: 20, alignSelf: "start" }}>
-              <SectionTitle
-                title="Application Details"
-                action={<button onClick={() => setSelected(null)} style={{ background: "none", border: "none", cursor: "pointer", color: SA.textMuted, fontSize: 18 }}>✕</button>}
-              />
-              <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: 16 }}>
-                {[
-                  { label: "Clinic Name", value: selected.name, icon: <Building2 size={14} /> },
-                  { label: "Contact Person", value: selected.contactPerson, icon: <User size={14} /> },
-                  { label: "Email", value: selected.email, icon: <Mail size={14} /> },
-                  { label: "Phone", value: selected.phone, icon: <Phone size={14} /> },
-                  { label: "Address", value: `${selected.address}, ${selected.city}`, icon: <MapPin size={14} /> },
-                  { label: "Website", value: selected.website || "Not provided", icon: null },
-                ].map((item) => (
-                  <div key={item.label}>
-                    <p style={{ fontSize: 11, fontWeight: 600, color: SA.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", margin: 0, marginBottom: 4 }}>{item.label}</p>
-                    <p style={{ fontSize: 13, color: SA.textPrimary, margin: 0 }}>{item.value}</p>
+                {/* Row 2: Contact Info Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16, padding: '12px 0', borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Mail size={14} color={C.muted} />
+                    <span style={{ fontSize: 12, color: C.muted }}>{c.email}</span>
                   </div>
-                ))}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Phone size={14} color={C.muted} />
+                    <span style={{ fontSize: 12, color: C.muted }}>{c.phone}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <User size={14} color={C.muted} />
+                    <span style={{ fontSize: 12, color: C.muted }}>{c.requestedUsers} users requested</span>
+                  </div>
+                </div>
 
-                <div style={{ borderTop: `1px solid ${SA.border}`, paddingTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
-                  <Btn label="Approve Clinic" variant="success" icon={<CheckCircle2 size={14} />} onClick={() => approve(selected.id)} />
-                  <Btn label="Reject Application" variant="danger" icon={<XCircle size={14} />} onClick={() => reject(selected.id)} />
+                {/* Row 3: Notes & Actions */}
+                {c.notes && (
+                  <div style={{ marginBottom: 16, padding: '10px 12px', background: C.amberBg, borderRadius: 8, fontSize: 12, color: C.amberText }}>
+                    📝 {c.notes}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Calendar size={12} color={C.faint} />
+                    <span style={{ fontSize: 12, color: C.faint }}>Submitted {c.submittedAt}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button
+                      onClick={() => navigate(`/admin/clinics/${c.id}`)}
+                      style={{ padding: '6px 14px', background: C.bgMuted, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: 'pointer' }}
+                    >
+                      View Details
+                    </button>
+                    <button
+                      onClick={() => reject(c.id)}
+                      disabled={actionLoading === c.id}
+                      style={{ padding: '6px 16px', background: C.redBg, border: `1px solid ${C.redBorder}`, borderRadius: 8, fontSize: 12, fontWeight: 500, color: C.redText, cursor: 'pointer' }}
+                    >
+                      {actionLoading === c.id ? '...' : 'Reject'}
+                    </button>
+                    <button
+                      onClick={() => approve(c.id)}
+                      disabled={actionLoading === c.id}
+                      style={{ padding: '6px 16px', background: C.tealBg, border: `1px solid ${C.tealBorder}`, borderRadius: 8, fontSize: 12, fontWeight: 500, color: C.tealText, cursor: 'pointer' }}
+                    >
+                      {actionLoading === c.id ? '...' : 'Approve'}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </Card>
-          )}
+            </div>
+          ))}
         </div>
       )}
-    </PageWrapper>
+    </div>
   );
 }

@@ -1,8 +1,12 @@
 // ─────────────────────────────────────────────────────────────
-// src/api/logs.ts (CLEAN + SECURE)
+// src/api/logs.ts (UPDATED WITH VERSIONING)
 // ─────────────────────────────────────────────────────────────
 
 import client from "./client";
+
+const API_PREFIX = import.meta.env.VITE_API_VERSION
+  ? `/api/${import.meta.env.VITE_API_VERSION}`
+  : "";
 
 export interface LogEntry {
   id: number;
@@ -41,32 +45,27 @@ export interface LogStats {
 }
 
 export const apiGetLogs = async (params?: any): Promise<LogsResponse> => {
-  const res = await client.get("/logs", { params });
-  return res.data;
+  return (await client.get(`${API_PREFIX}/logs`, { params })).data;
 };
 
 export const apiGetLog = async (id: number): Promise<LogEntry> => {
-  const res = await client.get(`/logs/${id}`);
-  return res.data;
+  return (await client.get(`${API_PREFIX}/logs/${id}`)).data;
 };
 
 export const apiGetLogStats = async (): Promise<LogStats> => {
-  const res = await client.get("/logs/stats");
-  return res.data;
+  return (await client.get(`${API_PREFIX}/logs/stats`)).data;
 };
 
 export const apiClearLogs = async (): Promise<{ success: boolean }> => {
-  const res = await client.delete("/logs");
-  return res.data;
+  return (await client.delete(`${API_PREFIX}/logs`)).data;
 };
 
 export const apiDeleteLog = async (id: number): Promise<{ success: boolean }> => {
-  const res = await client.delete(`/logs/${id}`);
-  return res.data;
+  return (await client.delete(`${API_PREFIX}/logs/${id}`)).data;
 };
 
 export const apiExportLogs = async (params?: any): Promise<Blob> => {
-  const res = await client.post("/logs/export", params, {
+  const res = await client.post(`${API_PREFIX}/logs/export`, params, {
     responseType: "blob",
   });
   return res.data;

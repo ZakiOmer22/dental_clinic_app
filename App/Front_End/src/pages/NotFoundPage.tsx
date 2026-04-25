@@ -296,7 +296,7 @@ export default function NotFoundPage() {
             fontSize: "11px",
             color: C.faint,
           }}>
-            <p>© {new Date().getFullYear()} Dental Clinic Portal | Powered by Ealif Suite</p>
+            <p>© {new Date().getFullYear()} Daryeel App — Multi-Clinic Dental SaaS Platform | Powered by Ealif Suite</p>
             <p style={{ marginTop: "4px" }}>
               Need help? Contact support at{" "}
               <a href="mailto:support@dentalclinic.com" style={{ color: C.teal, textDecoration: "none" }}>

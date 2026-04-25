@@ -1,27 +1,23 @@
-// ─────────────────────────────────────────────────────────────
-// src/api/referrals.ts (CLEAN + SECURE)
-// ─────────────────────────────────────────────────────────────
-
 import client from "./client";
 
+const API_PREFIX = import.meta.env.VITE_API_VERSION
+  ? `/api/${import.meta.env.VITE_API_VERSION}`
+  : "";
+
 export const apiGetReferrals = async (params?: any) => {
-  const res = await client.get("/referrals", { params });
-  return res.data;
+  return (await client.get(`${API_PREFIX}/referrals`, { params })).data;
 };
 
 export const apiGetReferral = async (id: number) => {
-  const res = await client.get(`/referrals/${id}`);
-  return res.data;
+  return (await client.get(`${API_PREFIX}/referrals/${id}`)).data;
 };
 
 export const apiCreateReferral = async (data: any) => {
-  const res = await client.post("/referrals", data);
-  return res.data;
+  return (await client.post(`${API_PREFIX}/referrals`, data)).data;
 };
 
 export const apiUpdateReferral = async (id: number, data: any) => {
-  const res = await client.put(`/referrals/${id}`, data);
-  return res.data;
+  return (await client.put(`${API_PREFIX}/referrals/${id}`, data)).data;
 };
 
 export const apiUpdateReferralStatus = async (
@@ -29,14 +25,14 @@ export const apiUpdateReferralStatus = async (
   status: string,
   feedbackNotes?: string
 ) => {
-  const res = await client.patch(`/referrals/${id}/status`, {
-    status,
-    feedbackNotes,
-  });
-  return res.data;
+  return (
+    await client.patch(`${API_PREFIX}/referrals/${id}/status`, {
+      status,
+      feedbackNotes,
+    })
+  ).data;
 };
 
 export const apiDeleteReferral = async (id: number) => {
-  const res = await client.delete(`/referrals/${id}`);
-  return res.data;
+  return (await client.delete(`${API_PREFIX}/referrals/${id}`)).data;
 };
